@@ -105,3 +105,30 @@ window.addNewProduct = (e) => {
     form.reset();
     AdminManager.renderProducts();
 };
+
+// PWA Install Logic
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const installBtn = document.getElementById('install-btn');
+    if (installBtn) installBtn.style.display = 'block';
+
+    installBtn.addEventListener('click', () => {
+        installBtn.style.display = 'none';
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('User accepted the A2HS prompt');
+            }
+            deferredPrompt = null;
+        });
+    });
+});
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js');
+    });
+}

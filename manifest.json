@@ -1,0 +1,15 @@
+{
+  "name": "Abu Asim Admin",
+  "short_name": "Admin Panel",
+  "start_url": "/admin/dashboard.html",
+  "display": "standalone",
+  "background_color": "#021a0f",
+  "theme_color": "#D4AF37",
+  "icons": [
+    {
+      "src": "/assets/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

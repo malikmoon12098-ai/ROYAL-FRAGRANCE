@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Royal Fragrance</title>
+    <title>Dashboard | Abu Asim</title>
+    <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -14,7 +15,9 @@
     <div class="admin-container">
         <!-- Sidebar -->
         <aside class="sidebar">
-            <a href="#" class="sidebar-brand"><i class="fas fa-crown"></i> <span>ROYAL ADMIN</span></a>
+            <a href="#" class="sidebar-brand">
+                <img src="../assets/logo.png" alt="Abu Asim" class="sidebar-logo">
+            </a>
             <nav>
                 <div class="nav-item active" onclick="showSection('dashboard')">
                     <i class="fas fa-home"></i> <span>Dashboard</span>
@@ -22,6 +25,11 @@
                 <div class="nav-item" onclick="showSection('products')">
                     <i class="fas fa-box"></i> <span>Products</span>
                 </div>
+                <!-- Install PWA Button -->
+                <button id="install-btn" class="install-btn" style="display:none;">
+                    <i class="fas fa-download"></i> Install App
+                </button>
+
                 <div class="nav-item" onclick="showSection('orders')">
                     <i class="fas fa-shopping-cart"></i> <span>Orders</span>
                 </div>

@@ -4,17 +4,23 @@
     --color-gold: #D4AF37;
     --color-gold-light: #F4C430;
     --color-gold-dark: #AA8C2C;
-    --color-black: #050505;
-    --color-dark-gray: #121212;
-    --color-medium-gray: #2A2A2A;
+
+    /* New Dark Green Theme */
+    --color-black: #021a0f;
+    /* Deep Emerald Black */
+    --color-dark-gray: #062b1b;
+    /* Rich Forest Green */
+    --color-medium-gray: #0f402c;
+
     --color-silver: #C0C0C0;
     --color-white: #FFFFFF;
     --color-text-light: #E0E0E0;
-    --color-text-muted: #A0A0A0;
-    
+    --color-text-muted: #aebbxb;
+    /* Slight blue-green tint to gray */
+
     --font-heading: 'Playfair Display', serif;
     --font-body: 'Montserrat', sans-serif;
-    
+
     --transition-speed: 0.3s;
     --container-width: 1200px;
     --header-height: 80px;
@@ -34,7 +40,12 @@ body {
     overflow-x: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-family: var(--font-heading);
     color: var(--color-gold);
     font-weight: 700;
@@ -108,12 +119,29 @@ img {
 
 /* Animations */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .fade-in {
     animation: fadeIn 0.8s ease forwards;
+}
+
+/* Logo Utility */
+.logo-img {
+    height: 60px;
+    /* Adjust as needed */
+    /* This makes the black background of the logo transparent when on dark bg */
+    mix-blend-mode: screen;
+    filter: brightness(1.2) contrast(1.1);
+    /* Pop the gold */
 }
 
 /* Scrollbar */
@@ -122,14 +150,14 @@ img {
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--color-black); 
+    background: var(--color-black);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--color-medium-gray); 
+    background: var(--color-medium-gray);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-gold); 
+    background: var(--color-gold);
 }
