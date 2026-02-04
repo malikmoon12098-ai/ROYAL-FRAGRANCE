@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart | Royal Fragrance</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .cart-container {
+            padding: 120px 0 80px;
+        }
+
+        .cart-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--color-dark-gray);
+            margin-bottom: 40px;
+        }
+
+        .cart-table th {
+            text-align: left;
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            color: var(--color-gold);
+        }
+
+        .cart-table td {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            vertical-align: middle;
+        }
+
+        .cart-product {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .cart-img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+        }
+
+        .remove-btn {
+            color: #d9534f;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+        }
+
+        .cart-summary {
+            background: var(--color-dark-gray);
+            padding: 30px;
+            max-width: 400px;
+            margin-left: auto;
+            border: 1px solid #333;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .total-row {
+            border-top: 1px solid #333;
+            padding-top: 20px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--color-gold);
+        }
+
+        /* Navbar Duplicate */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(10, 10, 10, 0.95);
+            padding: 20px 0;
+            z-index: 1000;
+            border-bottom: 1px solid #333;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: var(--font-heading);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--color-gold);
+            letter-spacing: 2px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .nav-icons {
+            display: flex;
+            gap: 20px;
+            color: #fff;
+        }
+
+        .cart-count {
+            color: var(--color-gold);
+            font-size: 0.9rem;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="container nav-container">
+            <a href="index.html" class="logo">ROYAL FRAGRANCE</a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="shop.html">Shop</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container cart-container">
+        <h1>Your Shopping Cart</h1>
+        <div id="cart-content">
+            <!-- Rendered by JS -->
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCart();
+        });
+
+        function renderCart() {
+            const cart = JSON.parse(localStorage.getItem('rf_cart') || '[]');
+            const container = document.getElementById('cart-content');
+
+            if (cart.length === 0) {
+                container.innerHTML = '<p>Your cart is empty.</p><a href="shop.html" class="btn btn-primary" style="margin-top:20px;">Continue Shopping</a>';
+                return;
+            }
+
+            let html = `
+                <table class="cart-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Subtotal</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            let grandTotal = 0;
+
+            cart.forEach((item, index) => {
+                const product = DataManager.getProductById(item.productId);
+                if (!product) return; // Skip invalid
+
+                const subtotal = product.price * item.quantity;
+                grandTotal += subtotal;
+
+                html += `
+                    <tr>
+                        <td>
+                            <div class="cart-product">
+                                <img src="${product.image}" class="cart-img" alt="${product.name}">
+                                <div>
+                                    <h3>${product.name}</h3>
+                                    <span>${product.brand}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>$${product.price}</td>
+                        <td>${item.quantity}</td>
+                        <td>$${subtotal}</td>
+                        <td><button class="remove-btn" onclick="removeItem(${index})"><i class="fas fa-trash"></i></button></td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+
+                <div class="cart-summary">
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <span>$${grandTotal}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Shipping</span>
+                        <span>Free</span>
+                    </div>
+                    <div class="summary-row total-row">
+                        <span>Total</span>
+                        <span>$${grandTotal}</span>
+                    </div>
+                    <a href="checkout.html" class="btn btn-primary" style="width:100%; text-align:center; margin-top:20px;">Proceed to Checkout</a>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function removeItem(index) {
+            let cart = JSON.parse(localStorage.getItem('rf_cart') || '[]');
+            cart.splice(index, 1);
+            localStorage.setItem('rf_cart', JSON.stringify(cart));
+            renderCart();
+        }
+    </script>
+</body>
+
+</html>

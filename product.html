@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details | Royal Fragrance</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .product-detail-container {
+            padding: 120px 0 80px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .product-gallery {
+            background: var(--color-dark-gray);
+            padding: 20px;
+            border: 1px solid #333;
+        }
+
+        .product-gallery img {
+            width: 100%;
+            height: auto;
+            max-height: 600px;
+            object-fit: cover;
+        }
+
+        .product-details h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--color-white);
+        }
+
+        .product-brand {
+            font-size: 1rem;
+            color: var(--color-gold);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .product-price {
+            font-size: 2rem;
+            color: var(--color-gold);
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+
+        .product-desc {
+            color: var(--color-text-light);
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+
+        .fragrance-notes {
+            background: #111;
+            padding: 20px;
+            border-left: 3px solid var(--color-gold);
+            margin-bottom: 40px;
+        }
+
+        .note-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .note-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .note-label {
+            width: 100px;
+            font-weight: 600;
+            color: var(--color-gold);
+        }
+
+        .action-area {
+            display: flex;
+            gap: 20px;
+        }
+
+        .qty-input {
+            background: transparent;
+            border: 1px solid #333;
+            color: white;
+            padding: 12px;
+            width: 80px;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        /* Navbar & Footer (Duplicated) */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(10, 10, 10, 0.95);
+            padding: 20px 0;
+            z-index: 1000;
+            border-bottom: 1px solid #333;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: var(--font-heading);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--color-gold);
+            letter-spacing: 2px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .nav-links a:hover {
+            color: var(--color-gold);
+        }
+
+        .nav-icons {
+            display: flex;
+            gap: 20px;
+            color: #fff;
+        }
+
+        .cart-count {
+            color: var(--color-gold);
+            font-size: 0.9rem;
+            margin-left: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .product-detail-container {
+                grid-template-columns: 1fr;
+                padding-top: 100px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="container nav-container">
+            <a href="index.html" class="logo">ROYAL FRAGRANCE</a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="shop.html">Shop</a></li>
+            </ul>
+            <div class="nav-icons">
+                <a href="cart.html"><i class="fas fa-shopping-bag"></i> <span class="cart-count">0</span></a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container product-detail-container" id="product-content">
+        <!-- Content via JS -->
+    </div>
+
+    <script src="js/data.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const productId = params.get('id');
+            const product = DataManager.getProductById(productId);
+
+            if (!product) {
+                document.getElementById('product-content').innerHTML = '<h2>Product not found</h2><a href="shop.html" class="btn">Back to Shop</a>';
+                return;
+            }
+
+            document.getElementById('product-content').innerHTML = `
+                <div class="product-gallery fade-in">
+                    <img src="${product.image}" alt="${product.name}">
+                </div>
+                <div class="product-details fade-in">
+                    <span class="product-brand">${product.brand}</span>
+                    <h1>${product.name}</h1>
+                    <p class="product-price">$${product.price}</p>
+                    <p class="product-desc">${product.description}</p>
+                    
+                    <div class="fragrance-notes">
+                        <div class="note-item"><span class="note-label">Top Notes:</span> <span>${product.notes.top}</span></div>
+                        <div class="note-item"><span class="note-label">Heart:</span> <span>${product.notes.middle}</span></div>
+                        <div class="note-item"><span class="note-label">Base:</span> <span>${product.notes.base}</span></div>
+                    </div>
+
+                    <div class="action-area">
+                        <input type="number" id="qty" class="qty-input" value="1" min="1" max="${product.stock}">
+                        <button class="btn btn-primary" onclick="addToCart('${product.id}')">Add to Cart</button>
+                    </div>
+                </div>
+            `;
+
+            // Update Cart Count
+            updateCartCount();
+        });
+
+        function updateCartCount() {
+            const cart = JSON.parse(localStorage.getItem('rf_cart') || '[]');
+            document.querySelector('.cart-count').textContent = cart.length;
+        }
+
+        function addToCart(id) {
+            const qty = parseInt(document.getElementById('qty').value);
+            let cart = JSON.parse(localStorage.getItem('rf_cart') || '[]');
+
+            // Check if exists
+            const existing = cart.find(item => item.productId === id);
+
+            if (existing) {
+                existing.quantity += qty;
+            } else {
+                cart.push({ productId: id, quantity: qty });
+            }
+
+            localStorage.setItem('rf_cart', JSON.stringify(cart));
+            updateCartCount();
+            alert('Product added to cart');
+        }
+    </script>
+</body>
+
+</html>

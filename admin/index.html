@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | Royal Fragrance</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #000;
+        }
+
+        .login-box {
+            background: #111;
+            padding: 40px;
+            border: 1px solid #333;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-box h1 {
+            color: var(--color-gold);
+            margin-bottom: 30px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            background: #222;
+            border: 1px solid #333;
+            color: white;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-box fade-in">
+        <h1>Admin Panel</h1>
+        <form onsubmit="event.preventDefault(); AdminManager.login(this.username.value, this.password.value)">
+            <input type="text" name="username" class="form-control" placeholder="Username (admin)" required>
+            <input type="password" name="password" class="form-control" placeholder="Password (admin)" required>
+            <button class="btn btn-primary" style="width:100%">Login</button>
+        </form>
+    </div>
+
+    <!-- Need data.js for localStorage check if we want, but actually only admin.js needed here -->
+    <script src="../js/data.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+
+</html>

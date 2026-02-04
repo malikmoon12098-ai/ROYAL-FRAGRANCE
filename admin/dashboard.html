@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Royal Fragrance</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <a href="#" class="sidebar-brand"><i class="fas fa-crown"></i> <span>ROYAL ADMIN</span></a>
+            <nav>
+                <div class="nav-item active" onclick="showSection('dashboard')">
+                    <i class="fas fa-home"></i> <span>Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="showSection('products')">
+                    <i class="fas fa-box"></i> <span>Products</span>
+                </div>
+                <div class="nav-item" onclick="showSection('orders')">
+                    <i class="fas fa-shopping-cart"></i> <span>Orders</span>
+                </div>
+                <div class="nav-item" onclick="AdminManager.logout()" style="color: #d9534f; margin-top: 40px;">
+                    <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- Dashboard Section -->
+            <section id="section-dashboard" class="fade-in">
+                <h2 class="section-title">Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Sales</h3>
+                        <div class="value" id="stat-sales">$0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Orders</h3>
+                        <div class="value" id="stat-orders">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Est. Revenue</h3>
+                        <div class="value" id="stat-revenue">$0</div>
+                    </div>
+                </div>
+
+                <h2 class="section-title">Recent Orders</h2>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-table-body">
+                        <!-- JS Rendered -->
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Products Section -->
+            <section id="section-products" style="display:none;" class="fade-in">
+                <div class="section-title">
+                    <h2>Inventory Management</h2>
+                    <button class="btn btn-primary"
+                        onclick="document.getElementById('add-product-modal').style.display='flex'">+ Add
+                        Product</button>
+                </div>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-table-body">
+                        <!-- JS Rendered -->
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Orders Section (Full View) -->
+            <section id="section-orders" style="display:none;" class="fade-in">
+                <h2 class="section-title">All Orders</h2>
+                <p>Order management view is unified in dashboard for this version.</p>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="add-product-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom:20px;">Add New Perfume</h2>
+            <form onsubmit="addNewProduct(event)">
+                <input type="text" name="name" class="form-control" placeholder="Product Name" required
+                    style="width:100%; padding:10px; margin-bottom:10px; background:#333; border:1px solid #555; color:white;">
+                <select name="category" class="form-control"
+                    style="width:100%; padding:10px; margin-bottom:10px; background:#333; border:1px solid #555; color:white;">
+                    <option value="Men">Men</option>
+                    <option value="Women">Women</option>
+                    <option value="Unisex">Unisex</option>
+                    <option value="Luxury Collection">Luxury Collection</option>
+                </select>
+                <input type="number" name="price" class="form-control" placeholder="Price ($)" required
+                    style="width:100%; padding:10px; margin-bottom:10px; background:#333; border:1px solid #555; color:white;">
+                <input type="number" name="stock" class="form-control" placeholder="Stock Qty" required
+                    style="width:100%; padding:10px; margin-bottom:10px; background:#333; border:1px solid #555; color:white;">
+                <input type="url" name="image" class="form-control" placeholder="Image URL (http://...)"
+                    style="width:100%; padding:10px; margin-bottom:10px; background:#333; border:1px solid #555; color:white;">
+                <textarea name="description" rows="3" placeholder="Description"
+                    style="width:100%; padding:10px; margin-bottom:10px; background:#333; border:1px solid #555; color:white;"></textarea>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" class="btn"
+                        onclick="document.getElementById('add-product-modal').style.display='none'"
+                        style="border-color:#666; color:#aaa;">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/data.js"></script>
+    <script src="js/admin.js"></script>
+    <script>
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            AdminManager.checkAuth();
+            AdminManager.renderStats();
+            AdminManager.renderOrders();
+            AdminManager.renderProducts();
+        });
+
+        // Simple Tab Logic
+        function showSection(sectionId) {
+            document.querySelectorAll('main > section').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+            document.getElementById('section-' + sectionId).style.display = 'block';
+
+            // Highlight nav
+            const mapping = { 'dashboard': 0, 'products': 1, 'orders': 2 };
+            document.querySelectorAll('.nav-item')[mapping[sectionId]].classList.add('active');
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop | Royal Fragrance</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .page-header {
+            background-color: var(--color-dark-gray);
+            padding: 120px 0 60px;
+            text-align: center;
+        }
+
+        .filters {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: 1px solid #333;
+            color: var(--color-text-muted);
+            padding: 8px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        .filter-btn.active,
+        .filter-btn:hover {
+            border-color: var(--color-gold);
+            color: var(--color-gold);
+        }
+
+        /* Product Card (reused style, ensure consistent) */
+        .product-card {
+            background: var(--color-dark-gray);
+            border: 1px solid #333;
+            padding: 20px;
+            transition: transform var(--transition-speed);
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--color-gold);
+        }
+
+        .product-img {
+            height: 300px;
+            width: 100%;
+            object-fit: cover;
+            margin-bottom: 15px;
+        }
+
+        .product-info h3 {
+            font-size: 1.2rem;
+            color: var(--color-white);
+        }
+
+        .price {
+            color: var(--color-gold);
+            font-weight: 600;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        /* Navbar (Duplicated for standalone capability) */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(10, 10, 10, 0.95);
+            padding: 20px 0;
+            z-index: 1000;
+            border-bottom: 1px solid #333;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: var(--font-heading);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--color-gold);
+            letter-spacing: 2px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--color-gold);
+        }
+
+        .nav-icons {
+            display: flex;
+            gap: 20px;
+        }
+
+        .cart-count {
+            color: var(--color-gold);
+            font-size: 0.9rem;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="container nav-container">
+            <a href="index.html" class="logo">ROYAL FRAGRANCE</a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="shop.html" class="active">Shop</a></li>
+                <li><a href="index.html#about">Our Story</a></li>
+            </ul>
+            <div class="nav-icons">
+                <a href="cart.html"><i class="fas fa-shopping-bag"></i> <span class="cart-count">0</span></a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="page-header">
+        <div class="container">
+            <h1>Our Collection</h1>
+            <p style="color: var(--color-text-muted);">Explore our exclusive range of premium scents</p>
+        </div>
+    </header>
+
+    <section class="section-padding">
+        <div class="container">
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="Men">Men</button>
+                <button class="filter-btn" data-filter="Women">Women</button>
+                <button class="filter-btn" data-filter="Unisex">Unisex</button>
+                <button class="filter-btn" data-filter="Luxury Collection">Luxury Collection</button>
+            </div>
+
+            <div class="product-grid" id="product-list">
+                <!-- Products -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="background: var(--color-dark-gray); padding: 50px 0; margin-top: 50px; border-top: 1px solid #333;">
+        <div class="container text-center">
+            <p style="font-size: 0.8rem; color: #666;">&copy; 2026 Royal Fragrance.</p>
+        </div>
+    </footer>
+
+    <script src="js/data.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const productList = document.getElementById('product-list');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            const products = DataManager.getProducts();
+
+            function renderProducts(category) {
+                productList.innerHTML = '';
+                const filtered = category === 'all'
+                    ? products
+                    : products.filter(p => p.category === category);
+
+                if (filtered.length === 0) {
+                    productList.innerHTML = '<p class="text-center" style="grid-column: 1/-1;">No products found in this category.</p>';
+                    return;
+                }
+
+                filtered.forEach(p => {
+                    productList.innerHTML += `
+                        <div class="product-card fade-in">
+                            <a href="product.html?id=${p.id}">
+                                <img src="${p.image}" alt="${p.name}" class="product-img">
+                                <div class="product-info">
+                                    <span style="display:block; font-size: 0.8rem; color: #888; margin-bottom: 5px;">${p.brand}</span>
+                                    <h3>${p.name}</h3>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+                                        <span class="price">$${p.price}</span>
+                                        <span style="font-size:0.8rem; color: #aaa;">${p.category}</span>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    `;
+                });
+            }
+
+            // Init
+            renderProducts('all');
+
+            // Update Cart Count
+            const cart = JSON.parse(localStorage.getItem('rf_cart') || '[]');
+            document.querySelector('.cart-count').textContent = cart.length;
+
+            // Filter Click
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderProducts(btn.dataset.filter);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
