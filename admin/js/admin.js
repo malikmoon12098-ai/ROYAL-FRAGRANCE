@@ -11,11 +11,12 @@ const AdminManager = {
     },
 
     login: (username, password) => {
-        if (username === 'admin' && password === 'admin') {
+        // Allow both 'admin' and user's name 'muavia'
+        if ((username.toLowerCase() === 'admin' || username.toLowerCase() === 'muavia') && password === 'admin') {
             localStorage.setItem('rf_admin_logged', 'true');
             window.location.href = 'dashboard.html';
         } else {
-            alert('Invalid Credentials');
+            alert('Invalid Credentials. Try Username: admin or muavia, Password: admin');
         }
     },
 

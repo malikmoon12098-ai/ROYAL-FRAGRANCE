@@ -42,13 +42,23 @@
 
 <body>
 
-    <div class="login-box fade-in">
-        <h1>Admin Panel</h1>
-        <form onsubmit="event.preventDefault(); AdminManager.login(this.username.value, this.password.value)">
-            <input type="text" name="username" class="form-control" placeholder="Username (admin)" required>
-            <input type="password" name="password" class="form-control" placeholder="Password (admin)" required>
-            <button class="btn btn-primary" style="width:100%">Login</button>
-        </form>
+    <div class="login-container">
+        <div class="login-box fade-in">
+            <h1>Royal Admin</h1>
+            <p>Enter your credentials to access dashboard</p>
+            <form onsubmit="event.preventDefault(); AdminManager.login(this.username.value, this.password.value)">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button class="btn-login">Login to Dashboard</button>
+            </form>
+            <p style="margin-top: 20px; font-size: 0.8rem; opacity: 0.5;">Authorized Access Only</p>
+        </div>
     </div>
 
     <!-- Need data.js for localStorage check if we want, but actually only admin.js needed here -->
