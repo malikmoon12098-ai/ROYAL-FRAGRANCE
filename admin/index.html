@@ -6,21 +6,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Royal Admin</title>
     <link rel="stylesheet" href="css/admin.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #000;
+            color: #d4af37;
+            font-family: sans-serif;
+            text-align: center;
+        }
+
+        .container {
+            border: 1px solid #333;
+            padding: 40px;
+            background: #111;
+            border-radius: 8px;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="login-container">
-        <div class="login-box fade-in">
-            <h1>Royal Admin</h1>
-            <p>Security Disabled. Access Dashboard Directly.</p>
-            <a href="dashboard.html" class="btn-login"
-                style="display:block; text-decoration:none; text-align:center; padding-top:15px;">Enter Dashboard</a>
-        </div>
+    <div class="container">
+        <h1>Welcome Admin</h1>
+        <p>Security Disabled. Redirecting to Dashboard...</p>
+        <br>
+        <p>If not redirected, <a href="dashboard.html" style="color: #fff; text-decoration: underline;">Click Here</a>
+        </p>
     </div>
+
     <script>
-        // Auto redirect for convenience
+        // Set a flag so dashboard doesn't kick us out if we add security back later
+        localStorage.setItem('rf_admin_logged', 'true');
+
+        // Force redirect to the sibling file
         setTimeout(() => {
-            window.location.href = 'dashboard.html';
+            // Get current path, remove index.html if present, ensure it ends with /
+            let path = window.location.pathname;
+            if (path.endsWith('index.html')) {
+                path = path.replace('index.html', '');
+            }
+            if (!path.endsWith('/')) {
+                path += '/';
+            }
+            // Construct absolute path to dashboard in the same directory
+            const target = window.location.origin + path + 'dashboard.html';
+            console.log('Redirecting to:', target);
+            window.location.href = target;
         }, 1000);
     </script>
 </body>

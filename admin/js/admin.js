@@ -1,23 +1,13 @@
 const AdminManager = {
     checkAuth: () => {
-        // Allow bypass if running locally without server for demo purposes if needed, 
-        // but for now just check storage.
-        if (!localStorage.getItem('rf_admin_logged')) {
-            // Check if we are already on index.html to avoid loop
-            if (!window.location.href.includes('index.html')) {
-                window.location.href = 'index.html';
-            }
-        }
+        // Security Disabled - Always allowed
+        return true;
     },
 
     login: (username, password) => {
-        // Allow both 'admin' and user's name 'muavia'
-        if ((username.toLowerCase() === 'admin' || username.toLowerCase() === 'muavia') && password === 'admin') {
-            localStorage.setItem('rf_admin_logged', 'true');
-            window.location.href = 'dashboard.html';
-        } else {
-            alert('Invalid Credentials. Try Username: admin or muavia, Password: admin');
-        }
+        // Dummy login for legacy calls
+        localStorage.setItem('rf_admin_logged', 'true');
+        window.location.href = 'dashboard.html';
     },
 
     logout: () => {
@@ -28,6 +18,7 @@ const AdminManager = {
     renderProducts: () => {
         const products = DataManager.getProducts();
         const tbody = document.getElementById('products-table-body');
+        if (!tbody) return;
         tbody.innerHTML = products.map(p => `
             <tr>
                 <td><img src="${p.image}" width="40" height="40" style="object-fit:cover; border-radius:4px;"></td>
@@ -43,6 +34,7 @@ const AdminManager = {
     renderOrders: () => {
         const orders = DataManager.getOrders();
         const tbody = document.getElementById('orders-table-body');
+        if (!tbody) return;
         tbody.innerHTML = orders.map(o => `
             <tr>
                 <td>${o.id}</td>
@@ -64,9 +56,13 @@ const AdminManager = {
         const orders = DataManager.getOrders();
         const totalSales = orders.reduce((sum, o) => sum + o.total, 0);
 
-        document.getElementById('stat-sales').textContent = '$' + totalSales;
-        document.getElementById('stat-orders').textContent = orders.length;
-        document.getElementById('stat-revenue').textContent = '$' + (totalSales * 0.4).toFixed(0); // Mock revenue
+        const elSales = document.getElementById('stat-sales');
+        const elOrders = document.getElementById('stat-orders');
+        const elRev = document.getElementById('stat-revenue');
+
+        if (elSales) elSales.textContent = '$' + totalSales;
+        if (elOrders) elOrders.textContent = orders.length;
+        if (elRev) elRev.textContent = '$' + (totalSales * 0.4).toFixed(0);
     }
 };
 
@@ -82,7 +78,6 @@ window.deleteProduct = (id) => {
 
 window.updateStatus = (id, status) => {
     DataManager.updateOrderStatus(id, status);
-    // Optional: Toast notification
 };
 
 window.addNewProduct = (e) => {
@@ -95,7 +90,7 @@ window.addNewProduct = (e) => {
         category: form.category.value,
         price: parseFloat(form.price.value),
         stock: parseInt(form.stock.value),
-        image: form.image.value || 'https://via.placeholder.com/300', // Basic placeholder if empty
+        image: form.image.value || 'https://via.placeholder.com/300',
         description: form.description.value,
         notes: { top: 'Generic', middle: 'Generic', base: 'Generic' },
         featured: false,
