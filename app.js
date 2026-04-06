@@ -45,8 +45,9 @@ saveKeyBtn.addEventListener('click', () => {
     if (key) {
         localStorage.setItem('gemini_api_key', key);
         apiKey = key;
-        apiConfig.classList.add('hidden');
-        addMessage('system', 'API Key save ho gayi hai. Shukriya!');
+        apiKeyInput.placeholder = "Key Saved! ✅";
+        apiKeyInput.value = "";
+        setTimeout(() => apiConfig.classList.add('hidden'), 1000);
     }
 });
 
@@ -303,10 +304,16 @@ Format for files:
         const modelsData = await modelsRes.json();
         
         if (modelsData.error) {
-            apiConfig.classList.remove('hidden');
-            localStorage.removeItem('gemini_api_key');
-            apiKey = '';
-            return `API Key masla: ${modelsData.error.message}`;
+            const code = modelsData.error.code;
+            if (code === 401 || code === 403) {
+                apiConfig.classList.remove('hidden');
+                localStorage.removeItem('gemini_api_key');
+                apiKey = '';
+                return `API Key masla: ${modelsData.error.message}. Key remove kar di gayi hai, dobara try karein.`;
+            } else {
+                // Temporary error (like 503), don't remove the key!
+                return `API Busy (Error ${code}): ${modelsData.error.message}. Key save hai, thori der baad dobara koshish karein.`;
+            }
         }
 
         // Step 2: Pick first model that supports generateContent
