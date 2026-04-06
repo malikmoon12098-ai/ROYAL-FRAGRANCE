@@ -501,8 +501,6 @@ body.dark {
     cursor: not-allowed;
 }
 
-.hidden { display: none; }
-
 /* Multi-Key Styles */
 .slim-header {
     display: flex;
@@ -570,8 +568,22 @@ body.dark {
     background: none;
     border: none;
     color: var(--text-dim);
-    font-size: 1.8rem;
+    font-size: 2rem;
     cursor: pointer;
+    transition: all 0.2s;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+#close-keys-btn:hover {
+    color: #ff5f56;
+    background: rgba(255, 95, 86, 0.1);
+    transform: rotate(90deg);
 }
 
 .keys-list {
@@ -639,3 +651,5 @@ body.dark {
     color: var(--text-dim);
     text-align: center;
 }
+
+.hidden { display: none !important; }

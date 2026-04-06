@@ -77,8 +77,20 @@ window.removeKey = (index) => {
     updateKeysUI();
 };
 
-manageKeysBtn.onclick = () => keysManager.classList.toggle('hidden');
-closeKeysBtn.onclick = () => keysManager.classList.add('hidden');
+manageKeysBtn.addEventListener('click', () => {
+    keysManager.classList.remove('hidden');
+});
+
+closeKeysBtn.addEventListener('click', () => {
+    keysManager.classList.add('hidden');
+});
+
+// Close modal when clicking outside (on backdrop)
+keysManager.addEventListener('click', (e) => {
+    if (e.target === keysManager) {
+        keysManager.classList.add('hidden');
+    }
+});
 
 addKeyConfirmBtn.onclick = () => {
     const key = newKeyInput.value.trim();
