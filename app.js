@@ -14,7 +14,7 @@ const clearFolderBtn = document.getElementById('clear-folder');
 let projectFolder = null;
 let projectFiles = [];
 // Pre-configured by Antigravity as requested!
-let apiKey = localStorage.getItem('gemini_api_key') || 'AIzaSyAuvisO4PIkoYqUvuUTUof2Nx4afSxBHOA';
+let apiKey = localStorage.getItem('gemini_api_key') || '';
 
 if (apiKey) {
     apiConfig.classList.add('hidden');
@@ -84,6 +84,9 @@ const callGemini = async (prompt) => {
         const modelsData = await modelsRes.json();
         
         if (modelsData.error) {
+            apiConfig.classList.remove('hidden');
+            localStorage.removeItem('gemini_api_key');
+            apiKey = '';
             return `API Key masla: ${modelsData.error.message}`;
         }
 
