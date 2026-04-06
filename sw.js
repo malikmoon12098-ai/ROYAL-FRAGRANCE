@@ -1,21 +1,25 @@
-const CACHE_NAME = 'abu-asim-admin-v1';
-const ASSETS = [
-    '/admin/dashboard.html',
-    '/admin/css/admin.css',
-    '/admin/js/admin.js',
-    '/assets/logo.png',
-    '/css/main.css',
-    '/js/data.js'
+const cacheName = 'dev-ai-v1';
+const assets = [
+  '/',
+  'index.html',
+  'style.css',
+  'app.js',
+  'logo.svg',
+  'manifest.json'
 ];
 
-self.addEventListener('install', (e) => {
-    e.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-    );
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(cacheName).then(cache => {
+      return cache.addAll(assets);
+    })
+  );
 });
 
-self.addEventListener('fetch', (e) => {
-    e.respondWith(
-        caches.match(e.request).then((response) => response || fetch(e.request))
-    );
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(response => {
+      return response || fetch(e.request);
+    })
+  );
 });
