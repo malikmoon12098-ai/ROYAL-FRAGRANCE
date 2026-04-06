@@ -39,6 +39,9 @@ const addKeyConfirmBtn = id('add-key-confirm-btn');
 const keysCount = id('keys-count');
 const activeKeyInfo = id('active-key-info');
 const activeKeyNum = id('active-key-num');
+const puterLoginBtn = id('puter-login-btn');
+
+let isPuterEnabled = false;
 
 // Preview Handlers
 openPreviewBtn.onclick = () => {
@@ -111,6 +114,34 @@ addKeyConfirmBtn.onclick = () => {
         updateKeysUI();
     }
 };
+
+// Puter Login Logic
+if (typeof puter !== 'undefined') {
+    puterLoginBtn.addEventListener('click', async () => {
+        try {
+            if (!puter.auth.isSignedIn()) {
+                await puter.auth.signIn();
+            }
+            isPuterEnabled = true;
+            puterLoginBtn.innerText = "✅ Logged into Puter (Keyless Active)";
+            puterLoginBtn.classList.add('is-logged-in');
+            updateKeysUI();
+        } catch (err) {
+            console.error("Puter Login Failed:", err);
+            alert("Puter login fail ho gaya. Plz check internet.");
+        }
+    });
+
+    // Check initial state
+    if (puter.auth.isSignedIn()) {
+        isPuterEnabled = true;
+        puterLoginBtn.innerText = "✅ Logged into Puter (Keyless Active)";
+        puterLoginBtn.classList.add('is-logged-in');
+    }
+} else {
+    puterLoginBtn.innerText = "🌐 Puter Library Load Nahi Hui";
+    puterLoginBtn.disabled = true;
+}
 
 updateKeysUI();
 
@@ -423,6 +454,12 @@ const truncateHistory = (history) => {
     }).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.text}`).join('\n');
 };
 
+const callPuterAI = async (fullPrompt) => {
+    if (typeof puter === 'undefined') throw new Error("Puter unavailable");
+    const response = await puter.ai.chat(fullPrompt);
+    return response.toString();
+};
+
 const callAI = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0, typingDiv = null) => {
     const updateStatus = (text, className) => {
         if (typingDiv) {
@@ -432,14 +469,63 @@ const callAI = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0, typing
         }
     };
 
-    if (apiKeys.length === 0) {
-        addMessage('system', 'Pehle koi API Key daalein (OpenRouter, Groq ya Gemini)!');
+    if (apiKeys.length === 0 && !isPuterEnabled) {
+        addMessage('system', 'Pehle koi API Key daalein ya Keyless Mode (Puter) chose karein!');
         keysManager.classList.remove('hidden');
         return;
     }
 
+    // PUTER MODE (Keyless) Priority if enabled and no keys
+    if (isPuterEnabled && apiKeys.length === 0) {
+        updateStatus("Keyless Cloud AI (Puter)...", "status-generating");
+        try {
+            const historyText = truncateHistory(chatHistory.slice(-10));
+            const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer. Speak in ROMAN URDU.
+CRITICAL RULES:
+1. JITNA POOCHA JAYE UTNA HI JAWAB DEIN.
+2. JAB TAK USER NA KAHE, tab tak coding shuru na karein.
+3. Code blocks MUST start with: // FILE: filename.ext
+4. Modern aesthetics (Glassmorphism, Dark Mode).
+Files: ${projectFiles.join(', ')}.`;
+
+            const fullPrompt = `${systemInstruction}\n\nRecent History:\n${historyText}\n\nUser: ${prompt}`;
+            const response = await callPuterAI(fullPrompt);
+            return `[Puter AI]: ` + response;
+        } catch (err) {
+            console.error("Puter AI failed:", err);
+            return "Puter AI mein masla aa gaya. Plz check login or internet.";
+        }
+    }
+
     if (keyIdx >= apiKeys.length) {
+        // Final fallback to Puter if keys exhausted
+        if (isPuterEnabled) {
+            console.warn("Keys exhausted, falling back to Puter...");
+            return callAI(prompt, imageData, -1, 0, typingDiv); // Special flag -1 for Puter
+        }
         return "Sari keys ki limit khatam ho chuki hai. Plz thori der baad try karein.";
+    }
+
+    // Handle Puter Fallback flag
+    if (keyIdx === -1) {
+        updateStatus("Keyless Cloud AI (Puter)...", "status-generating");
+        try {
+            const historyText = truncateHistory(chatHistory.slice(-10));
+            const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer. Speak in ROMAN URDU.
+CRITICAL RULES:
+1. JITNA POOCHA JAYE UTNA HI JAWAB DEIN.
+2. JAB TAK USER NA KAHE, tab tak coding shuru na karein.
+3. Code blocks MUST start with: // FILE: filename.ext
+4. Modern aesthetics (Glassmorphism, Dark Mode).
+Files: ${projectFiles.join(', ')}.`;
+
+            const fullPrompt = `${systemInstruction}\n\nRecent History:\n${historyText}\n\nUser: ${prompt}`;
+            const response = await callPuterAI(fullPrompt);
+            return `[Puter AI]: ` + response;
+        } catch (err) {
+            console.error("Puter AI fallback failed:", err);
+            return "Keys khatam ho chuki hain aur Puter AI mein bhi masla aa gaya.";
+        }
     }
 
     const currentKey = apiKeys[keyIdx];
@@ -462,25 +548,38 @@ Current Repository Files: ${projectFiles.join(', ')}.`;
         const fullPrompt = `${systemInstruction}\n\nRecent History:\n${historyText}\n\nUser: ${prompt}`;
 
         if (provider === 'google') {
-            // Updated models to most stable versions
             const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
             const targetModel = models[modelIdx] || models[1];
             
             updateStatus(`G-Studio (${keyIdx + 1}): ${targetModel}...`, "status-generating");
             
-            // Using v1 for better stability
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${targetModel}:generateContent?key=${currentKey}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
-                    generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
-                })
-            });
-            
-            const data = await res.json();
-            if (data.error) throw new Error(`${data.error.status}: ${data.error.message}`);
-            return `[Gemini]: ` + data.candidates[0].content.parts[0].text;
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 12000); // 12 second timeout
+
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${currentKey}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    signal: controller.signal,
+                    body: JSON.stringify({
+                        contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+                        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+                    })
+                });
+                
+                clearTimeout(timeout);
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    const msg = data.error ? data.error.message : 'Unknown Error';
+                    throw new Error(`${res.status}: ${msg}`);
+                }
+                
+                return `[Gemini]: ` + data.candidates[0].content.parts[0].text;
+            } catch (e) {
+                clearTimeout(timeout);
+                throw e;
+            }
 
         } else if (provider === 'openrouter') {
             const models = ['google/gemini-2.0-flash-exp:free', 'google/gemini-flash-1.5', 'meta-llama/llama-3.1-8b-instruct:free', 'deepseek/deepseek-chat:free', 'mistralai/mistral-7b-instruct:free'];
@@ -530,19 +629,20 @@ Current Repository Files: ${projectFiles.join(', ')}.`;
 
     } catch (err) {
         const errorMsg = err.message || "";
+        const status = errorMsg.split(':')[0].trim();
         console.error(`Key ${keyIdx + 1} (${provider}) Failed:`, errorMsg);
         
-        const provider = detectProvider(currentKey);
-        
-        // SMART SKIP: If quota or capacity issue, don't waste time on other models of SAME key
-        if (errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('quota') || errorMsg.includes('503')) {
-            console.warn(`Account ${keyIdx + 1} is busy/limited. Moving to next account...`);
+        // SMART SKIP: If any heavy error, move to NEXT KEY immediately
+        if (status === '429' || status === '503' || status === '403' || errorMsg.includes('quota') || errorMsg.includes('limit') || errorMsg.includes('abort') || errorMsg.includes('timeout')) {
+            console.warn(`Key ${keyIdx + 1} issues. Moving to account ${keyIdx + 2}...`);
             return callAI(prompt, imageData, keyIdx + 1, 0, typingDiv);
         }
 
+        const provider = detectProvider(currentKey);
         const maxModels = provider === 'google' ? 3 : provider === 'openrouter' ? 5 : 4;
+
         if (modelIdx < maxModels - 1) { 
-            console.log(`Retrying with next model on same key...`);
+            console.log(`Retrying next model on same key...`);
             return callAI(prompt, imageData, keyIdx, modelIdx + 1, typingDiv);
         }
         
