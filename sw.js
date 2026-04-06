@@ -1,4 +1,5 @@
-const cacheName = 'dev-ai-v2';
+const cacheName = 'dev-ai-v3';
+
 const assets = [
   './',
   'index.html',
