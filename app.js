@@ -206,7 +206,8 @@ const addMessage = (role, text, skipHistory = false) => {
         preElements.forEach(pre => {
             const codeEl = pre.querySelector('code');
             if (codeEl) {
-                const codeLines = codeEl.innerText.split('\n');
+                const rawContent = codeEl.innerText;
+                const codeLines = rawContent.split('\n');
                 const firstLine = codeLines[0].trim();
                 const match = firstLine.match(/^(?:\/\/|\/\*|<!--|<#)?\s*FILE:\s*([a-zA-Z0-9_.-/]+)/i);
                 
@@ -219,12 +220,11 @@ const addMessage = (role, text, skipHistory = false) => {
                     cleanCode = codeLines.join('\n');
                 } else {
                     // AUTO-DETECT FALLBACK
-                    const rawCode = codeEl.innerText;
-                    if (rawCode.includes('<!DOCTYPE') || rawCode.includes('<html')) filename = 'index.html';
-                    else if (rawCode.includes('{') && (rawCode.includes('margin') || rawCode.includes('color:'))) filename = 'style.css';
-                    else filename = 'app.js';
+                    if (rawContent.includes('<!DOCTYPE') || rawContent.includes('<html')) filename = 'index.html';
+                    else if (rawContent.includes('{') && (rawContent.includes('margin') || rawContent.includes('color:'))) filename = 'style.css';
+                    else if (rawContent.includes('function') || rawContent.includes('const') || rawContent.includes('let')) filename = 'app.js';
                     
-                    cleanCode = rawCode;
+                    cleanCode = rawContent;
                 }
 
                 if (filename) {
@@ -248,7 +248,6 @@ const addMessage = (role, text, skipHistory = false) => {
                         }
                     };
 
-                    // Auto-Trigger on generation
                     triggerSave();
                     
                     saveBtn.addEventListener('click', async () => {
@@ -262,7 +261,6 @@ const addMessage = (role, text, skipHistory = false) => {
                     pre.parentNode.insertBefore(actionDiv, pre);
                 }
                 
-                // Final Highlight for chat
                 Prism.highlightElement(codeEl);
             }
         });
@@ -270,7 +268,6 @@ const addMessage = (role, text, skipHistory = false) => {
 
     chatMessages.appendChild(div);
     
-    // Fix Scroll Logic
     requestAnimationFrame(() => {
         chatMessages.scrollTo({
             top: chatMessages.scrollHeight,
@@ -280,7 +277,7 @@ const addMessage = (role, text, skipHistory = false) => {
 
     if (!skipHistory && (role === 'user' || role === 'ai')) {
         chatHistory.push({ role, text });
-        if (chatHistory.length > 20) chatHistory.shift(); // Keep it light
+        if (chatHistory.length > 30) chatHistory.shift(); 
         saveHistory();
     }
 };
@@ -406,7 +403,27 @@ const writeProjectFile = async (filePath, content) => {
     }
 };
 
-const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0, typingDiv = null) => {
+// Utility: Detect Provider based on Key prefix
+const detectProvider = (key) => {
+    if (key.startsWith('AIza')) return 'google';
+    if (key.startsWith('sk-or-')) return 'openrouter';
+    if (key.startsWith('gsk_')) return 'groq';
+    return 'unknown';
+};
+
+// Utility: Remove large code blocks from history to save tokens
+const truncateHistory = (history) => {
+    return history.map((msg, index) => {
+        // Keep the last 2 messages fully intact
+        if (index >= history.length - 2) return msg;
+
+        // Strip code blocks from older messages
+        let cleanText = msg.text.replace(/```[\s\S]*?```/g, ' [Purana Code Truncated to save tokens] ');
+        return { ...msg, text: cleanText };
+    }).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.text}`).join('\n');
+};
+
+const callAI = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0, typingDiv = null) => {
     const updateStatus = (text, className) => {
         if (typingDiv) {
             const p = typingDiv.querySelector('p');
@@ -416,7 +433,7 @@ const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0, ty
     };
 
     if (apiKeys.length === 0) {
-        addMessage('system', 'Pehle koi API Key daalein!');
+        addMessage('system', 'Pehle koi API Key daalein (OpenRouter, Groq ya Gemini)!');
         keysManager.classList.remove('hidden');
         return;
     }
@@ -425,84 +442,87 @@ const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0, ty
         return "Sari keys ki limit khatam ho chuki hai. Plz thori der baad try karein.";
     }
 
-    updateStatus(`Searching Key ${keyIdx + 1}...`, "status-searching");
-
+    const currentKey = apiKeys[keyIdx];
+    const provider = detectProvider(currentKey);
     activeKeyIndex = keyIdx;
     updateKeysUI();
-    const currentKey = apiKeys[keyIdx];
+
+    updateStatus(`Using Key ${keyIdx + 1} (${provider})...`, "status-searching");
 
     try {
-        const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${currentKey}`);
-        const modelsData = await modelsRes.json();
-        
-        if (modelsData.error) {
-             console.error(`Key ${keyIdx + 1} Fetch Error:`, modelsData.error.message);
-             return callGemini(prompt, imageData, keyIdx + 1, 0, typingDiv);
-        }
+        const historyText = truncateHistory(chatHistory.slice(-10));
+        const systemInstruction = `You are DEV AI, a Senior Developer & UI Designer. Speak in ROMAN URDU.
+CRITICAL: Every code block MUST start with: // FILE: filename.ext
+Style: Premium, Dark Mode, Glassmorphism. NO NPM.
+Project context: ${projectFiles.join(', ')}.`;
 
-        const allowedTargets = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro', 'gemini-1.0-pro'];
-        const validModels = modelsData.models
-            ?.map(m => m.name.replace('models/', ''))
-            .filter(name => {
-                const n = name.toLowerCase();
-                return allowedTargets.some(t => n.includes(t)) && 
-                       !n.includes('preview') && 
-                       !n.includes('experimental') && 
-                       !n.includes('customtools');
-            })
-            .sort((a, b) => {
-                const rank = (n) => {
-                    if (n.includes('1.5-flash')) return 1;
-                    if (n.includes('1.5-pro')) return 2;
-                    if (n.includes('pro')) return 3;
-                    return 4;
-                };
-                return rank(a) - rank(b);
+        const fullPrompt = `${systemInstruction}\n\nRecent History:\n${historyText}\n\nUser: ${prompt}`;
+
+        if (provider === 'google') {
+            const genAI = new GoogleGenerativeAI(currentKey);
+            const models = ['gemini-1.5-flash', 'gemini-1.5-pro'];
+            const targetModel = models[modelIdx] || models[0];
+            
+            updateStatus(`Generating with ${targetModel}...`, "status-generating");
+            const model = genAI.getGenerativeModel({ model: targetModel });
+            
+            const parts = [fullPrompt];
+            if (imageData) parts.push({ inlineData: { data: imageData.data, mimeType: imageData.type } });
+
+            const result = await model.generateContent(parts);
+            return `[Gemini]: ` + (await result.response).text();
+
+        } else if (provider === 'openrouter') {
+            const models = ['google/gemini-flash-1.5-exp:free', 'meta-llama/llama-3.1-8b-instruct:free', 'deepseek/deepseek-chat:free'];
+            const targetModel = models[modelIdx] || models[0];
+            
+            updateStatus(`OpenRouter: ${targetModel}...`, "status-generating");
+            
+            const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${currentKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: targetModel,
+                    messages: [{ role: "user", content: fullPrompt }]
+                })
             });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error.message);
+            return `[OpenRouter]: ` + data.choices[0].message.content;
 
-        if (!validModels || validModels.length === 0) {
-            return callGemini(prompt, imageData, keyIdx + 1, 0, typingDiv);
+        } else if (provider === 'groq') {
+            const models = ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
+            const targetModel = models[modelIdx] || models[0];
+
+            updateStatus(`Groq: ${targetModel}...`, "status-generating");
+
+            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${currentKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: targetModel,
+                    messages: [{ role: "user", content: fullPrompt }]
+                })
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error.message);
+            return `[Groq]: ` + data.choices[0].message.content;
         }
-
-        if (modelIdx >= validModels.length) {
-            return callGemini(prompt, imageData, keyIdx + 1, 0, typingDiv);
-        }
-
-        const modelName = validModels[modelIdx];
-        updateStatus(`Generating with ${modelName}...`, "status-generating");
-
-        const genAI = new GoogleGenerativeAI(currentKey);
-        const model = genAI.getGenerativeModel({ model: modelName });
-
-        const historyText = chatHistory.slice(-10).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.text}`).join('\n');
-        const folderStatus = projectFolder ? `Active (Folder: ${projectFolder.name})` : "None";
-        const visionContext = imageData ? "\n[Note: User has attached a screenshot.]" : "";
-
-        const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer & UI/UX Designer. You speak in ROMAN URDU.
-Jitna poocha jaye utna hi jawab dein. Be-wajah lambi baatein ya intro na dein.
-
-CRITICAL: Coding karte waqt har code block ki PEHLI LINE pe file ka naam is tarah likhein: // FILE: filename.ext 
-Warna code "Live Code View" mein nazar nahi aayega.
-
-Your goal is to build web applications that look and feel like PREMIUM, HIGH-END digital products. Always use modern aesthetics (Glassmorphism, Gradients, Premium Fonts). NO NPM.
-
-Available Project files: ${projectFiles.join(', ')}.${visionContext}`;
-
-        const combinedPrompt = `[INTERNAL STATE: Folder Selection is ${folderStatus}]\n\n${systemInstruction}\n\nPrevious Conversation:\n${historyText}\n\nUser Question: ${prompt}`;
-
-        const parts = [combinedPrompt];
-        if (imageData) parts.push({ inlineData: { data: imageData.data, mimeType: imageData.type } });
-
-        const result = await model.generateContent(parts);
-        const response = await result.response;
-        return `[${modelName}]: ` + response.text();
 
     } catch (err) {
-        const errorMsg = err.message ? err.message.toLowerCase() : "";
-        if (errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('limit') || errorMsg.includes('404') || errorMsg.includes('400')) {
-            return callGemini(prompt, imageData, keyIdx, modelIdx + 1, typingDiv);
+        console.error(`Key ${keyIdx + 1} Error:`, err.message);
+        // If current key has more models, try next model
+        if (modelIdx < 1) { // Try at least 2 models per key
+            return callAI(prompt, imageData, keyIdx, modelIdx + 1, typingDiv);
         }
-        return callGemini(prompt, imageData, keyIdx + 1, 0, typingDiv);
+        // Otherwise try next key
+        return callAI(prompt, imageData, keyIdx + 1, 0, typingDiv);
     }
 };
 
@@ -523,7 +543,7 @@ const handleSend = async () => {
     typingDiv.innerHTML = '<p>Soch raha hoon...</p>';
     chatMessages.appendChild(typingDiv);
 
-    const aiResponse = await callGemini(text, imgToSend, 0, 0, typingDiv);
+    const aiResponse = await callAI(text, imgToSend, 0, 0, typingDiv);
     typingDiv.remove();
     addMessage('ai', aiResponse);
 };
