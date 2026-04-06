@@ -14,10 +14,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
-    <script type="importmap">
-      {
-        "imports": {
-          "@google/generative-ai": "https://esm.run/@google/generative-ai",
           "marked": "https://esm.run/marked"
         }
       }
@@ -73,8 +69,10 @@
                         <span id="current-folder-name"></span>
                         <button id="clear-folder" title="Close Folder">×</button>
                     </div>
-                    <div class="active-key-indicator hidden" id="active-key-info">Key #<span id="active-key-num">1</span></div>
-                    <button id="manage-keys-btn" class="keys-btn">🔑 Keys <span id="keys-count">0</span></button>
+                    <div id="ai-status-pill" class="ai-status-pill">
+                        <span class="status-dot"></span>
+                        <span id="puter-status-text">Puter AI Connect...</span>
+                    </div>
                 </div>
             </header>
 
@@ -86,10 +84,6 @@
                     </div>
                 </div>
                 <div class="input-area">
-                    <div class="api-key-config" id="api-config">
-                        <input type="password" id="api-key" placeholder="Enter API Key (Gemini, OpenRouter, Groq)...">
-                        <button id="save-key">Bachao (Save)</button>
-                    </div>
                     <div class="chat-input-container">
                         <div id="image-preview-container" class="image-preview-box hidden">
                             <img id="image-preview" src="" alt="Preview">
@@ -108,26 +102,6 @@
 
     </div>
 
-    <!-- Keys Manager Modal -->
-    <div id="keys-manager" class="keys-modal hidden">
-        <div class="keys-modal-content">
-            <div class="keys-header">
-                <h3>Manage API Keys</h3>
-                <button id="close-keys-btn">×</button>
-            </div>
-            <div id="keys-list" class="keys-list">
-                <!-- Keys will be injected here -->
-            </div>
-            <div class="add-key-box">
-                <input type="password" id="new-key-input" placeholder="Nayi Key yahan daalein (Gemini, OpenRouter, Groq)...">
-                <button id="add-key-confirm-btn">+</button>
-            </div>
-            <div class="keyless-section">
-                <p class="or-divider">OR</p>
-                <button id="puter-login-btn" class="keyless-btn">🌐 Login to Puter (No-Key Mode)</button>
-            </div>
-            <p class="keys-note">Aik key ki limit khatam hui to system khud switch kar lega. Puter Mode mein koi key nahi chahiye.</p>
-        </div>
     </div>
 
     <script type="module" src="app.js"></script>

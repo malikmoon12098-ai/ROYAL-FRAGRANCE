@@ -1,22 +1,17 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { marked } from "marked";
-
 
 let pendingImage = null; // { data: base64, type: mime }
 
 function id(name) { return document.getElementById(name); }
 
-// Console greeting for dev debugging
-console.log("DEV AI Initializing...");
+// Console greeting
+console.log("DEV AI - Pure Keyless Mode Initializing...");
 
 // DOM Elements
 const chatMessages = id('chat-messages');
 const userInput = id('user-input');
 const sendBtn = id('send-btn');
 const dropZone = id('drop-zone');
-const apiKeyInput = id('api-key');
-const saveKeyBtn = id('save-key');
-const apiConfig = id('api-config');
 const folderInfo = document.querySelector('.folder-status-top');
 const currentFolderName = id('current-folder-name');
 const clearFolderBtn = id('clear-folder');
@@ -29,19 +24,15 @@ const imagePreviewContainer = id('image-preview-container');
 const imagePreviewImg = id('image-preview');
 const removeImageBtn = id('remove-image');
 
-// Multi-Key Elements
-const manageKeysBtn = id('manage-keys-btn');
-const keysManager = id('keys-manager');
-const closeKeysBtn = id('close-keys-btn');
-const keysList = id('keys-list');
-const newKeyInput = id('new-key-input');
-const addKeyConfirmBtn = id('add-key-confirm-btn');
-const keysCount = id('keys-count');
-const activeKeyInfo = id('active-key-info');
-const activeKeyNum = id('active-key-num');
-const puterLoginBtn = id('puter-login-btn');
+// AI Status Elements
+const aiStatusPill = id('ai-status-pill');
+const puterStatusText = id('puter-status-text');
 
 let isPuterEnabled = false;
+let projectFolder = null;
+let projectFiles = [];
+let chatHistory = []; 
+let openFiles = {}; // { filename: content }
 
 // Preview Handlers
 openPreviewBtn.onclick = () => {
@@ -52,179 +43,88 @@ openPreviewBtn.onclick = () => {
     window.open(url, '_blank');
 };
 
-let projectFolder = null;
-let projectFiles = [];
-let chatHistory = []; 
-let openFiles = {}; // { filename: content }
+// --- Puter AI Logic ---
 
-// Multi-Key Logic
-let apiKeys = JSON.parse(localStorage.getItem('gemini_api_keys')) || [];
-let activeKeyIndex = 0;
-
-const updateKeysUI = () => {
-    keysCount.innerText = apiKeys.length;
-    keysList.innerHTML = apiKeys.map((key, index) => `
-        <div class="key-item ${index === activeKeyIndex ? 'active' : ''}">
-            <div class="key-label">
-                <span class="key-index">${index + 1}</span>
-                <span>${key.substring(0, 8)}...${key.substring(key.length - 4)}</span>
-            </div>
-            <button class="delete-key-btn" onclick="removeKey(${index})">×</button>
-        </div>
-    `).join('');
-    
-    if (apiKeys.length > 0) {
-        apiConfig.classList.add('hidden');
-        activeKeyInfo.classList.remove('hidden');
-        activeKeyNum.innerText = activeKeyIndex + 1;
-    } else {
-        apiConfig.classList.remove('hidden');
-        activeKeyInfo.classList.add('hidden');
-    }
-};
-
-window.removeKey = (index) => {
-    apiKeys.splice(index, 1);
-    localStorage.setItem('gemini_api_keys', JSON.stringify(apiKeys));
-    if (activeKeyIndex >= apiKeys.length) activeKeyIndex = 0;
-    updateKeysUI();
-};
-
-manageKeysBtn.addEventListener('click', () => {
-    keysManager.classList.remove('hidden');
-});
-
-closeKeysBtn.addEventListener('click', () => {
-    keysManager.classList.add('hidden');
-});
-
-// Close modal when clicking outside (on backdrop)
-keysManager.addEventListener('click', (e) => {
-    if (e.target === keysManager) {
-        keysManager.classList.add('hidden');
-    }
-});
-
-addKeyConfirmBtn.onclick = () => {
-    const key = newKeyInput.value.trim();
-    if (key) {
-        apiKeys.push(key);
-        localStorage.setItem('gemini_api_keys', JSON.stringify(apiKeys));
-        newKeyInput.value = '';
-        updateKeysUI();
-    }
-};
-
-// Puter Login Logic
-if (typeof puter !== 'undefined') {
-    puterLoginBtn.addEventListener('click', async () => {
-        try {
-            if (!puter.auth.isSignedIn()) {
-                await puter.auth.signIn();
-            }
-            isPuterEnabled = true;
-            puterLoginBtn.innerText = "✅ Logged into Puter (Keyless Active)";
-            puterLoginBtn.classList.add('is-logged-in');
-            updateKeysUI();
-        } catch (err) {
-            console.error("Puter Login Failed:", err);
-            alert("Puter login fail ho gaya. Plz check internet.");
-        }
-    });
-
-    // Check initial state
-    if (puter.auth.isSignedIn()) {
+const updateStatusUI = () => {
+    if (typeof puter !== 'undefined' && puter.auth.isSignedIn()) {
         isPuterEnabled = true;
-        puterLoginBtn.innerText = "✅ Logged into Puter (Keyless Active)";
-        puterLoginBtn.classList.add('is-logged-in');
+        aiStatusPill.classList.add('connected');
+        puterStatusText.innerText = "Puter AI: Connected";
+    } else {
+        isPuterEnabled = false;
+        aiStatusPill.classList.remove('connected');
+        puterStatusText.innerText = "Puter AI: Not Connected (Click to Login)";
     }
-} else {
-    puterLoginBtn.innerText = "🌐 Puter Library Load Nahi Hui";
-    puterLoginBtn.disabled = true;
+};
+
+if (typeof puter !== 'undefined') {
+    aiStatusPill.onclick = async () => {
+        if (!puter.auth.isSignedIn()) {
+            try {
+                await puter.auth.signIn();
+                updateStatusUI();
+            } catch (err) {
+                console.error("Login failed", err);
+            }
+        }
+    };
+    updateStatusUI();
 }
 
-updateKeysUI();
+const callPuterAI = async (fullPrompt) => {
+    if (typeof puter === 'undefined') throw new Error("Puter unavailable");
+    const response = await puter.ai.chat(fullPrompt);
+    return response.toString();
+};
 
-// Legacy Support for single key migration
-const legacyKey = localStorage.getItem('gemini_api_key');
-if (legacyKey && !apiKeys.includes(legacyKey)) {
-    apiKeys.push(legacyKey);
-    localStorage.setItem('gemini_api_keys', JSON.stringify(apiKeys));
-    localStorage.removeItem('gemini_api_key');
-    updateKeysUI();
-}
+const callAI = async (prompt, typingDiv = null) => {
+    const updateStatus = (text, className) => {
+        if (typingDiv) {
+            const p = typingDiv.querySelector('p');
+            if (p) p.innerText = text;
+            typingDiv.className = `message ai typing ${className}`;
+        }
+    };
 
-// Save API Key from old UI
-saveKeyBtn.addEventListener('click', () => {
-    const key = apiKeyInput.value.trim();
-    if (key) {
-        apiKeys.push(key);
-        localStorage.setItem('gemini_api_keys', JSON.stringify(apiKeys));
-        apiKeyInput.value = "";
-        updateKeysUI();
+    if (!isPuterEnabled) {
+        if (typeof puter !== 'undefined' && !puter.auth.isSignedIn()) {
+            await puter.auth.signIn();
+            updateStatusUI();
+        }
+        if (!isPuterEnabled) return "Plz Puter AI se connect karein (Top Right Pill par click karein).";
     }
-});
 
-// File System Logic
-const handleFolderSelect = async () => {
+    updateStatus("Keyless Cloud AI (Puter)...", "status-generating");
+
     try {
-        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-        await loadFolder(dirHandle);
+        const historyText = truncateHistory(chatHistory.slice(-10));
+        const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer. Speak in ROMAN URDU.
+CRITICAL RULES:
+1. JITNA POOCHA JAYE UTNA HI JAWAB DEIN.
+2. JAB TAK USER NA KAHE, tab tak coding shuru na karein.
+3. Code blocks MUST start with: // FILE: filename.ext
+4. Modern aesthetics (Glassmorphism, Dark Mode). NO NPM.
+Files in Project: ${projectFiles.join(', ')}.`;
+
+        const fullPrompt = `${systemInstruction}\n\nRecent History:\n${historyText}\n\nUser: ${prompt}`;
+        const response = await callPuterAI(fullPrompt);
+        return response;
     } catch (err) {
-        console.error('Folder selection cancelled or failed', err);
+        console.error("AI Error:", err);
+        return "Afsoos! AI response mein masla aa gaya. Plz check connection.";
     }
 };
 
-dropZone.addEventListener('click', handleFolderSelect);
+// --- Core Helper Functions ---
 
-const loadFolder = async (dirHandle) => {
-    projectFolder = dirHandle;
-    projectFiles = [];
-    chatHistory = [];
-    openFiles = {};
-    
-    chatMessages.innerHTML = `
-        <div class="message system">
-            <p>Assalam-o-Alaikum! Main DEV AI hoon. Mujhy koi folder dein aur batayein kia kaam karna hai.</p>
-        </div>
-    `;
-    
-    // Reset Code Panel
-    codePanelTabs.innerHTML = '<span class="tab active">👾 DEV AI</span>';
-    resetCodeBody();
-
-    for await (const entry of dirHandle.values()) {
-        if (entry.kind === 'file') {
-            projectFiles.push(entry.name);
-        }
-    }
-
-    // Try to load history file
-    try {
-        const historyHandle = await dirHandle.getFileHandle('.dev_ai_history.json', { create: false });
-        const file = await historyHandle.getFile();
-        const content = await file.text();
-        if (content) {
-            chatHistory = JSON.parse(content);
-            chatHistory.forEach(msg => {
-                addMessage(msg.role, msg.text, true); // Don't re-save what we loaded
-            });
-            addMessage('system', `Pichla kaam yaad agaya! ${chatHistory.length} messages load ho gaye hain.`, true);
-        }
-    } catch (e) {
-        console.log('No history found or failed to load', e);
-    }
-
-    currentFolderName.innerText = `Folder: ${dirHandle.name} (${projectFiles.length} files)`;
-    folderInfo.classList.remove('hidden');
-    dropZone.classList.add('hidden');
-    
-    if (chatHistory.length === 0) {
-        addMessage('system', `Mubarak ho! Aapne "${dirHandle.name}" folder load kar liya hai. Ab batayein kia help chahiye?`);
-    }
+const truncateHistory = (history) => {
+    return history.map((msg, index) => {
+        if (index >= history.length - 2) return msg;
+        let cleanText = msg.text.replace(/```[\s\S]*?```/g, ' [Code Truncated] ');
+        return { ...msg, text: cleanText };
+    }).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.text}`).join('\n');
 };
 
-// Chat Logic
 const addMessage = (role, text, skipHistory = false) => {
     const div = document.createElement('div');
     div.className = `message ${role}`;
@@ -250,18 +150,15 @@ const addMessage = (role, text, skipHistory = false) => {
                     codeLines.shift();
                     cleanCode = codeLines.join('\n');
                 } else {
-                    // AUTO-DETECT FALLBACK
                     if (rawContent.includes('<!DOCTYPE html') || rawContent.includes('<html')) filename = 'index.html';
                     else if (rawContent.includes('{') && (rawContent.includes('margin') || rawContent.includes(':root'))) filename = 'style.css';
                     else if (rawContent.includes('function') || rawContent.includes('addEventListener') || rawContent.includes('console.log')) filename = 'app.js';
-                    
                     cleanCode = rawContent;
                 }
 
                 if (filename) {
                     codeEl.innerText = cleanCode; 
                     updateCodePanel(filename, cleanCode);
-
                     const actionDiv = document.createElement('div');
                     actionDiv.className = 'file-action';
                     const saveBtn = document.createElement('button');
@@ -278,32 +175,24 @@ const addMessage = (role, text, skipHistory = false) => {
                             saveBtn.classList.remove('success');
                         }
                     };
-
                     triggerSave();
-                    
-                    saveBtn.addEventListener('click', async () => {
+                    saveBtn.onclick = async () => {
                         saveBtn.disabled = true;
                         saveBtn.innerText = `⏳ Saving...`;
                         await triggerSave();
                         saveBtn.disabled = false;
-                    });
-                    
+                    };
                     actionDiv.appendChild(saveBtn);
                     pre.parentNode.insertBefore(actionDiv, pre);
                 }
-                
                 Prism.highlightElement(codeEl);
             }
         });
     }
 
     chatMessages.appendChild(div);
-    
     requestAnimationFrame(() => {
-        chatMessages.scrollTo({
-            top: chatMessages.scrollHeight,
-            behavior: 'smooth'
-        });
+        chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
     });
 
     if (!skipHistory && (role === 'user' || role === 'ai')) {
@@ -315,8 +204,6 @@ const addMessage = (role, text, skipHistory = false) => {
 
 const updateCodePanel = (filename, content) => {
     openFiles[filename] = content;
-    
-    // Upsert Tab
     let tab = Array.from(codePanelTabs.children).find(t => t.dataset.file === filename);
     if (!tab) {
         tab = document.createElement('span');
@@ -326,28 +213,19 @@ const updateCodePanel = (filename, content) => {
         tab.onclick = () => showFileContent(filename);
         codePanelTabs.appendChild(tab);
     }
-    
     showFileContent(filename);
 };
 
 const showFileContent = (filename) => {
-    // UI: Active Tab
     Array.from(codePanelTabs.children).forEach(t => t.classList.remove('active'));
     const activeTab = Array.from(codePanelTabs.children).find(t => t.dataset.file === filename);
     if (activeTab) activeTab.classList.add('active');
 
-    // UI: Code Display + Highlighting
     const ext = filename.split('.').pop();
     const lang = ext === 'js' ? 'javascript' : ext === 'css' ? 'css' : 'html';
-    
     codePanelBody.innerHTML = `<pre class="code-display line-numbers"><code class="language-${lang}">${escapeHTML(openFiles[filename])}</code></pre>`;
-    
-    const codeEl = codePanelBody.querySelector('code');
-    Prism.highlightElement(codeEl);
-
-    if (filename.endsWith('.html')) {
-        openPreviewBtn.style.display = 'block';
-    }
+    Prism.highlightElement(codePanelBody.querySelector('code'));
+    if (filename.endsWith('.html')) openPreviewBtn.style.display = 'block';
 };
 
 const resetCodeBody = () => {
@@ -355,74 +233,27 @@ const resetCodeBody = () => {
         <div class="code-welcome">
             <div class="code-welcome-icon">⚡</div>
             <h2>Live Code View</h2>
-            <p>Jab DEV AI code likhega,<br>yahan real-time nazar aayega.</p>
-            <div class="code-welcome-steps">
-                <div class="step"><span>1</span> <p>Folder load karein</p></div>
-                <div class="step"><span>2</span> <p>App banane ko kaho (ya screenshot paste karein)</p></div>
-                <div class="step"><span>3</span> <p>Yahan code dekhein ✨</p></div>
-            </div>
+            <p>Jab DEV AI code likhega, yahan nazar aayega.</p>
         </div>
     `;
     openPreviewBtn.style.display = 'none';
 };
 
-const setPendingImage = (base64, type) => {
-    pendingImage = { data: base64, type };
-    imagePreviewImg.src = `data:${type};base64,${base64}`;
-    imagePreviewContainer.classList.remove('hidden');
-};
-
-removeImageBtn.onclick = () => {
-    pendingImage = null;
-    imagePreviewContainer.classList.add('hidden');
-};
-
-const convertToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-};
-
-const escapeHTML = (str) => {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-};
-
-const saveHistory = async () => {
-    if (!projectFolder) return;
-    try {
-        const historyHandle = await projectFolder.getFileHandle('.dev_ai_history.json', { create: true });
-        const writable = await historyHandle.createWritable();
-        await writable.write(JSON.stringify(chatHistory, null, 2));
-        await writable.close();
-    } catch (e) {
-        console.error('Failed to save history', e);
-    }
-};
+const escapeHTML = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 const writeProjectFile = async (filePath, content) => {
-    if (!projectFolder) {
-        alert("Pehle koi folder load karein!");
-        return false;
-    }
+    if (!projectFolder) return false;
     try {
         const parts = filePath.split('/');
         const filename = parts.pop();
-        
         let currentDir = projectFolder;
         for (const part of parts) {
-            if (part && part !== '.') {
-                currentDir = await currentDir.getDirectoryHandle(part, { create: true });
-            }
+            if (part && part !== '.') currentDir = await currentDir.getDirectoryHandle(part, { create: true });
         }
-        
         const fileHandle = await currentDir.getFileHandle(filename, { create: true });
         const writable = await fileHandle.createWritable();
         await writable.write(content);
         await writable.close();
-        
         if (!projectFiles.includes(filePath)) {
             projectFiles.push(filePath);
             currentFolderName.innerText = `Folder: ${projectFolder.name} (${projectFiles.length} files)`;
@@ -434,231 +265,57 @@ const writeProjectFile = async (filePath, content) => {
     }
 };
 
-// Utility: Detect Provider based on Key prefix
-const detectProvider = (key) => {
-    if (key.startsWith('AIza')) return 'google';
-    if (key.startsWith('sk-or-')) return 'openrouter';
-    if (key.startsWith('gsk_')) return 'groq';
-    return 'unknown';
-};
-
-// Utility: Remove large code blocks from history to save tokens
-const truncateHistory = (history) => {
-    return history.map((msg, index) => {
-        // Keep the last 2 messages fully intact
-        if (index >= history.length - 2) return msg;
-
-        // Strip code blocks from older messages
-        let cleanText = msg.text.replace(/```[\s\S]*?```/g, ' [Purana Code Truncated to save tokens] ');
-        return { ...msg, text: cleanText };
-    }).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.text}`).join('\n');
-};
-
-const callPuterAI = async (fullPrompt) => {
-    if (typeof puter === 'undefined') throw new Error("Puter unavailable");
-    const response = await puter.ai.chat(fullPrompt);
-    return response.toString();
-};
-
-const callAI = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0, typingDiv = null) => {
-    const updateStatus = (text, className) => {
-        if (typingDiv) {
-            const p = typingDiv.querySelector('p');
-            if (p) p.innerText = text;
-            typingDiv.className = `message ai typing ${className}`;
-        }
-    };
-
-    if (apiKeys.length === 0 && !isPuterEnabled) {
-        addMessage('system', 'Pehle koi API Key daalein ya Keyless Mode (Puter) chose karein!');
-        keysManager.classList.remove('hidden');
-        return;
-    }
-
-    // PUTER MODE (Keyless) Priority if enabled and no keys
-    if (isPuterEnabled && apiKeys.length === 0) {
-        updateStatus("Keyless Cloud AI (Puter)...", "status-generating");
-        try {
-            const historyText = truncateHistory(chatHistory.slice(-10));
-            const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer. Speak in ROMAN URDU.
-CRITICAL RULES:
-1. JITNA POOCHA JAYE UTNA HI JAWAB DEIN.
-2. JAB TAK USER NA KAHE, tab tak coding shuru na karein.
-3. Code blocks MUST start with: // FILE: filename.ext
-4. Modern aesthetics (Glassmorphism, Dark Mode).
-Files: ${projectFiles.join(', ')}.`;
-
-            const fullPrompt = `${systemInstruction}\n\nRecent History:\n${historyText}\n\nUser: ${prompt}`;
-            const response = await callPuterAI(fullPrompt);
-            return `[Puter AI]: ` + response;
-        } catch (err) {
-            console.error("Puter AI failed:", err);
-            return "Puter AI mein masla aa gaya. Plz check login or internet.";
-        }
-    }
-
-    if (keyIdx >= apiKeys.length) {
-        // Final fallback to Puter if keys exhausted
-        if (isPuterEnabled) {
-            console.warn("Keys exhausted, falling back to Puter...");
-            return callAI(prompt, imageData, -1, 0, typingDiv); // Special flag -1 for Puter
-        }
-        return "Sari keys ki limit khatam ho chuki hai. Plz thori der baad try karein.";
-    }
-
-    // Handle Puter Fallback flag
-    if (keyIdx === -1) {
-        updateStatus("Keyless Cloud AI (Puter)...", "status-generating");
-        try {
-            const historyText = truncateHistory(chatHistory.slice(-10));
-            const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer. Speak in ROMAN URDU.
-CRITICAL RULES:
-1. JITNA POOCHA JAYE UTNA HI JAWAB DEIN.
-2. JAB TAK USER NA KAHE, tab tak coding shuru na karein.
-3. Code blocks MUST start with: // FILE: filename.ext
-4. Modern aesthetics (Glassmorphism, Dark Mode).
-Files: ${projectFiles.join(', ')}.`;
-
-            const fullPrompt = `${systemInstruction}\n\nRecent History:\n${historyText}\n\nUser: ${prompt}`;
-            const response = await callPuterAI(fullPrompt);
-            return `[Puter AI]: ` + response;
-        } catch (err) {
-            console.error("Puter AI fallback failed:", err);
-            return "Keys khatam ho chuki hain aur Puter AI mein bhi masla aa gaya.";
-        }
-    }
-
-    const currentKey = apiKeys[keyIdx];
-    const provider = detectProvider(currentKey);
-    activeKeyIndex = keyIdx;
-    updateKeysUI();
-
-    updateStatus(`Using Key ${keyIdx + 1} (${provider})...`, "status-searching");
-
+const saveHistory = async () => {
+    if (!projectFolder) return;
     try {
-        const historyText = truncateHistory(chatHistory.slice(-10));
-        const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer. Speak in ROMAN URDU.
-CRITICAL RULES:
-1. JITNA POOCHA JAYE UTNA HI JAWAB DEIN. Be-wajah lambi baatein ya intro na dein.
-2. JAB TAK USER NA KAHE, tab tak coding shuru na karein. Pehle users ka sawal sunain.
-3. Coding ke waqt har code block ki TOP line pe ye likhna LAZMI hai: // FILE: filename.ext
-4. Always use modern aesthetics (Glassmorphism, Gradients, Dark Mode). NO NPM.
-Current Repository Files: ${projectFiles.join(', ')}.`;
-
-        const fullPrompt = `${systemInstruction}\n\nRecent History:\n${historyText}\n\nUser: ${prompt}`;
-
-        if (provider === 'google') {
-            const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
-            const targetModel = models[modelIdx] || models[1];
-            
-            updateStatus(`G-Studio (${keyIdx + 1}): ${targetModel}...`, "status-generating");
-            
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 12000); // 12 second timeout
-
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${currentKey}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    signal: controller.signal,
-                    body: JSON.stringify({
-                        contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
-                        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
-                    })
-                });
-                
-                clearTimeout(timeout);
-                const data = await res.json();
-                
-                if (!res.ok) {
-                    const msg = data.error ? data.error.message : 'Unknown Error';
-                    throw new Error(`${res.status}: ${msg}`);
-                }
-                
-                return `[Gemini]: ` + data.candidates[0].content.parts[0].text;
-            } catch (e) {
-                clearTimeout(timeout);
-                throw e;
-            }
-
-        } else if (provider === 'openrouter') {
-            const models = ['google/gemini-2.0-flash-exp:free', 'google/gemini-flash-1.5', 'meta-llama/llama-3.1-8b-instruct:free', 'deepseek/deepseek-chat:free', 'mistralai/mistral-7b-instruct:free'];
-            const targetModel = models[modelIdx] || models[0];
-            
-            updateStatus(`OpenRouter (${keyIdx + 1}): ${targetModel}...`, "status-generating");
-            
-            const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${currentKey}`,
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": window.location.href, // Required for some free models
-                    "X-Title": "DEV AI Assistant"
-                },
-                body: JSON.stringify({
-                    model: targetModel,
-                    messages: [{ role: "user", content: fullPrompt }]
-                })
-            });
-            const data = await res.json();
-            if (data.error) throw new Error(data.error.message);
-            return `[OpenRouter]: ` + data.choices[0].message.content;
-
-        } else if (provider === 'groq') {
-            const models = ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'];
-            const targetModel = models[modelIdx] || models[0];
-
-            updateStatus(`Groq (${keyIdx + 1}): ${targetModel}...`, "status-generating");
-            // ... (rest of groq call remains same)
-
-            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${currentKey}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    model: targetModel,
-                    messages: [{ role: "user", content: fullPrompt }]
-                })
-            });
-            const data = await res.json();
-            if (data.error) throw new Error(data.error.message);
-            return `[Groq]: ` + data.choices[0].message.content;
-        }
-
-    } catch (err) {
-        const errorMsg = err.message || "";
-        const status = errorMsg.split(':')[0].trim();
-        console.error(`Key ${keyIdx + 1} (${provider}) Failed:`, errorMsg);
-        
-        // SMART SKIP: If any heavy error, move to NEXT KEY immediately
-        if (status === '429' || status === '503' || status === '403' || errorMsg.includes('quota') || errorMsg.includes('limit') || errorMsg.includes('abort') || errorMsg.includes('timeout')) {
-            console.warn(`Key ${keyIdx + 1} issues. Moving to account ${keyIdx + 2}...`);
-            return callAI(prompt, imageData, keyIdx + 1, 0, typingDiv);
-        }
-
-        const provider = detectProvider(currentKey);
-        const maxModels = provider === 'google' ? 3 : provider === 'openrouter' ? 5 : 4;
-
-        if (modelIdx < maxModels - 1) { 
-            console.log(`Retrying next model on same key...`);
-            return callAI(prompt, imageData, keyIdx, modelIdx + 1, typingDiv);
-        }
-        
-        return callAI(prompt, imageData, keyIdx + 1, 0, typingDiv);
-    }
+        const historyHandle = await projectFolder.getFileHandle('.dev_ai_history.json', { create: true });
+        const writable = await historyHandle.createWritable();
+        await writable.write(JSON.stringify(chatHistory, null, 2));
+        await writable.close();
+    } catch (e) {}
 };
+
+// --- Event Handlers ---
+
+const handleFolderSelect = async () => {
+    try {
+        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        projectFolder = dirHandle;
+        projectFiles = [];
+        chatHistory = [];
+        openFiles = {};
+        chatMessages.innerHTML = "";
+        codePanelTabs.innerHTML = '<span class="tab active">👾 DEV AI</span>';
+        resetCodeBody();
+
+        for await (const entry of dirHandle.values()) {
+            if (entry.kind === 'file') projectFiles.push(entry.name);
+        }
+
+        try {
+            const hHandle = await dirHandle.getFileHandle('.dev_ai_history.json', { create: false });
+            const file = await hHandle.getFile();
+            const content = await file.text();
+            if (content) {
+                chatHistory = JSON.parse(content);
+                chatHistory.forEach(msg => addMessage(msg.role, msg.text, true));
+            }
+        } catch (e) {}
+
+        currentFolderName.innerText = `Folder: ${dirHandle.name} (${projectFiles.length} files)`;
+        folderInfo.classList.remove('hidden');
+        dropZone.classList.add('hidden');
+        addMessage('system', `Mubarak ho! "${dirHandle.name}" load ho gaya hai.`);
+    } catch (err) {}
+};
+
+dropZone.addEventListener('click', handleFolderSelect);
 
 const handleSend = async () => {
     const text = userInput.value.trim();
     if (!text && !pendingImage) return;
 
-    const imgToSend = pendingImage;
-    pendingImage = null;
-    imagePreviewContainer.classList.add('hidden');
-
-    addMessage('user', text + (imgToSend ? ' [Screenshot Attached]' : ''));
+    addMessage('user', text + (pendingImage ? ' [Image Attached]' : ''));
     userInput.value = '';
     userInput.style.height = 'auto';
 
@@ -667,65 +324,41 @@ const handleSend = async () => {
     typingDiv.innerHTML = '<p>Soch raha hoon...</p>';
     chatMessages.appendChild(typingDiv);
 
-    const aiResponse = await callAI(text, imgToSend, 0, 0, typingDiv);
+    const aiResponse = await callAI(text, typingDiv);
     typingDiv.remove();
     addMessage('ai', aiResponse);
 };
 
+sendBtn.onclick = handleSend;
+userInput.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
+userInput.oninput = function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; };
+
+clearFolderBtn.onclick = () => {
+    projectFolder = null;
+    folderInfo.classList.add('hidden');
+    dropZone.classList.remove('hidden');
+    chatMessages.innerHTML = "";
+    addMessage('system', 'Folder closed.');
+};
+
+// Clipboard / Paste for Images
 userInput.addEventListener('paste', async (e) => {
     const items = (e.clipboardData || e.originalEvent.clipboardData).items;
     for (const item of items) {
         if (item.type.indexOf('image') !== -1) {
             const blob = item.getAsFile();
-            const base64 = await convertToBase64(blob);
-            setPendingImage(base64, item.type);
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                pendingImage = event.target.result;
+                imagePreviewImg.src = pendingImage;
+                imagePreviewContainer.classList.remove('hidden');
+            };
+            reader.readAsDataURL(blob);
         }
     }
 });
 
-sendBtn.addEventListener('click', handleSend);
-userInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-    }
-});
-
-// Auto-expand textarea
-userInput.addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = (this.scrollHeight) + 'px';
-});
-
-// Drag and drop Visuals
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('active');
-});
-dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('active');
-});
-dropZone.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('active');
-    // For drop, we still need a directory handle, which usually requires click in browser security.
-    // For now, we'll trigger the handleFolderSelect on drop to keep it simple and secure.
-    handleFolderSelect();
-});
-
-clearFolderBtn.addEventListener('click', () => {
-    projectFolder = null;
-    projectFiles = [];
-    chatHistory = []; // Reset history state
-    folderInfo.classList.add('hidden');
-    dropZone.classList.remove('hidden');
-    
-    // Clear chat EXCEPT for initial system message
-    chatMessages.innerHTML = `
-        <div class="message system">
-            <p>Assalam-o-Alaikum! Main DEV AI hoon. Mujhy koi folder dein aur batayein kia kaam karna hai.</p>
-        </div>
-    `;
-    
-    addMessage('system', 'Folder close aur history reset kar di gayi hai.');
-});
+removeImageBtn.onclick = () => {
+    pendingImage = null;
+    imagePreviewContainer.classList.add('hidden');
+};
