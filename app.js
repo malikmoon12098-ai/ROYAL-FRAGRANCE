@@ -210,13 +210,25 @@ const addMessage = (role, text, skipHistory = false) => {
                 const firstLine = codeLines[0].trim();
                 const match = firstLine.match(/^(?:\/\/|\/\*|<!--|<#)?\s*FILE:\s*([a-zA-Z0-9_.-/]+)/i);
                 
+                let filename = "";
+                let cleanCode = "";
+
                 if (match) {
-                    const filename = match[1];
+                    filename = match[1];
                     codeLines.shift();
-                    const cleanCode = codeLines.join('\n');
-                    codeEl.innerText = cleanCode; 
+                    cleanCode = codeLines.join('\n');
+                } else {
+                    // AUTO-DETECT FALLBACK
+                    const rawCode = codeEl.innerText;
+                    if (rawCode.includes('<!DOCTYPE') || rawCode.includes('<html')) filename = 'index.html';
+                    else if (rawCode.includes('{') && (rawCode.includes('margin') || rawCode.includes('color:'))) filename = 'style.css';
+                    else filename = 'app.js';
                     
-                    // Update IDE Panel
+                    cleanCode = rawCode;
+                }
+
+                if (filename) {
+                    codeEl.innerText = cleanCode; 
                     updateCodePanel(filename, cleanCode);
 
                     const actionDiv = document.createElement('div');
@@ -428,23 +440,22 @@ const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0, ty
              return callGemini(prompt, imageData, keyIdx + 1, 0, typingDiv);
         }
 
+        const allowedTargets = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro', 'gemini-1.0-pro'];
         const validModels = modelsData.models
-            ?.filter(m => m.supportedGenerationMethods?.includes('generateContent'))
-            .filter(m => {
-                const name = m.name.toLowerCase();
-                return name.includes('gemini') && 
-                       !name.includes('banana') && 
-                       !name.includes('2.5') && 
-                       !name.includes('deep-research');
+            ?.map(m => m.name.replace('models/', ''))
+            .filter(name => {
+                const n = name.toLowerCase();
+                return allowedTargets.some(t => n.includes(t)) && 
+                       !n.includes('preview') && 
+                       !n.includes('experimental') && 
+                       !n.includes('customtools');
             })
-            .map(m => m.name.replace('models/', ''))
             .sort((a, b) => {
-                const rank = (name) => {
-                    if (name.includes('1.5-flash')) return 1;
-                    if (name.includes('2.0-flash')) return 2;
-                    if (name.includes('1.5-pro')) return 3;
-                    if (name.includes('pro')) return 4;
-                    return 5;
+                const rank = (n) => {
+                    if (n.includes('1.5-flash')) return 1;
+                    if (n.includes('1.5-pro')) return 2;
+                    if (n.includes('pro')) return 3;
+                    return 4;
                 };
                 return rank(a) - rank(b);
             });
@@ -469,6 +480,10 @@ const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0, ty
 
         const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer & UI/UX Designer. You speak in ROMAN URDU.
 Jitna poocha jaye utna hi jawab dein. Be-wajah lambi baatein ya intro na dein.
+
+CRITICAL: Coding karte waqt har code block ki PEHLI LINE pe file ka naam is tarah likhein: // FILE: filename.ext 
+Warna code "Live Code View" mein nazar nahi aayega.
+
 Your goal is to build web applications that look and feel like PREMIUM, HIGH-END digital products. Always use modern aesthetics (Glassmorphism, Gradients, Premium Fonts). NO NPM.
 
 Available Project files: ${projectFiles.join(', ')}.${visionContext}`;
