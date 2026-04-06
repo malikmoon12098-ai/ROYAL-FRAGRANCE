@@ -384,6 +384,8 @@ const writeProjectFile = async (filePath, content) => {
     }
 };
 
+const standardModels = ['gemini-1.5-flash', 'gemini-1.5-pro'];
+
 const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0) => {
     if (apiKeys.length === 0) {
         addMessage('system', 'Pehle koi API Key daalein!');
@@ -393,38 +395,21 @@ const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0) =>
 
     // Wrap around if we ran out of keys
     if (keyIdx >= apiKeys.length) {
-        return "Sari keys aur unke models ki limit khatam ho chuki hai. Plz thori der baad try karein.";
+        return "Sari keys ki limit khatam ho chuki hai. Plz thori der baad try karein.";
+    }
+
+    // If all standard models for the current key are tried, move to next key
+    if (modelIdx >= standardModels.length) {
+        console.warn(`Key ${keyIdx + 1} standard models exhausted. Switching to next key...`);
+        return callGemini(prompt, imageData, keyIdx + 1, 0);
     }
 
     activeKeyIndex = keyIdx;
     updateKeysUI();
     const currentKey = apiKeys[keyIdx];
+    const modelName = standardModels[modelIdx];
 
     try {
-        const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${currentKey}`);
-        const modelsData = await modelsRes.json();
-        
-        if (modelsData.error) {
-             console.error(`Key ${keyIdx} Error:`, modelsData.error.message);
-             return callGemini(prompt, imageData, keyIdx + 1, 0); // Try NEXT KEY
-        }
-
-        const validModels = modelsData.models
-            ?.filter(m => m.supportedGenerationMethods?.includes('generateContent'))
-            .sort((a, b) => b.name.includes('pro') ? 1 : -1);
-
-        if (!validModels || validModels.length === 0) {
-            return callGemini(prompt, imageData, keyIdx + 1, 0); // Try NEXT KEY
-        }
-
-        if (modelIdx >= validModels.length) {
-            console.log(`Key ${keyIdx} models exhausted. Switching keys...`);
-            return callGemini(prompt, imageData, keyIdx + 1, 0); // Try NEXT KEY
-        }
-
-        const selectedModel = validModels[modelIdx];
-        const modelName = selectedModel.name.replace('models/', '');
-        
         console.log(`Trying Key [${keyIdx + 1}] Model [${modelIdx + 1}]: ${modelName}`);
 
         const genAI = new GoogleGenerativeAI(currentKey);
@@ -449,11 +434,12 @@ Available Project files: ${projectFiles.join(', ')}.${visionContext}`;
         return `[${modelName}]: ` + response.text();
 
     } catch (err) {
-        if (err.message.includes('429') || err.message.includes('quota')) {
-            console.warn(`Key ${keyIdx} Model ${modelIdx} limited. Trying next model...`);
-            return callGemini(prompt, imageData, keyIdx, modelIdx + 1); // Try NEXT MODEL
+        const errorMsg = err.message ? err.message.toLowerCase() : "";
+        if (errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('limit')) {
+            console.warn(`Key ${keyIdx + 1} Model ${modelName} limited. Trying next standard model...`);
+            return callGemini(prompt, imageData, keyIdx, modelIdx + 1); // Try NEXT MODEL for same key
         }
-        console.error(err);
+        console.error(`Error with Key ${keyIdx + 1} and Model ${modelName}:`, err);
         return callGemini(prompt, imageData, keyIdx + 1, 0); // Try NEXT KEY on other errors
     }
 };
