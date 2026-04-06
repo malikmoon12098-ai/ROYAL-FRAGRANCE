@@ -220,9 +220,9 @@ const addMessage = (role, text, skipHistory = false) => {
                     cleanCode = codeLines.join('\n');
                 } else {
                     // AUTO-DETECT FALLBACK
-                    if (rawContent.includes('<!DOCTYPE') || rawContent.includes('<html')) filename = 'index.html';
-                    else if (rawContent.includes('{') && (rawContent.includes('margin') || rawContent.includes('color:'))) filename = 'style.css';
-                    else if (rawContent.includes('function') || rawContent.includes('const') || rawContent.includes('let')) filename = 'app.js';
+                    if (rawContent.includes('<!DOCTYPE html') || rawContent.includes('<html')) filename = 'index.html';
+                    else if (rawContent.includes('{') && (rawContent.includes('margin') || rawContent.includes(':root'))) filename = 'style.css';
+                    else if (rawContent.includes('function') || rawContent.includes('addEventListener') || rawContent.includes('console.log')) filename = 'app.js';
                     
                     cleanCode = rawContent;
                 }
@@ -451,38 +451,48 @@ const callAI = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0, typing
 
     try {
         const historyText = truncateHistory(chatHistory.slice(-10));
-        const systemInstruction = `You are DEV AI, a Senior Developer & UI Designer. Speak in ROMAN URDU.
-CRITICAL: Every code block MUST start with: // FILE: filename.ext
-Style: Premium, Dark Mode, Glassmorphism. NO NPM.
-Project context: ${projectFiles.join(', ')}.`;
+        const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer. Speak in ROMAN URDU.
+CRITICAL RULES:
+1. JITNA POOCHA JAYE UTNA HI JAWAB DEIN. Be-wajah lambi baatein ya intro na dein.
+2. JAB TAK USER NA KAHE, tab tak coding shuru na karein. Pehle users ka sawal sunain.
+3. Coding ke waqt har code block ki TOP line pe ye likhna LAZMI hai: // FILE: filename.ext
+4. Always use modern aesthetics (Glassmorphism, Gradients, Dark Mode). NO NPM.
+Current Repository Files: ${projectFiles.join(', ')}.`;
 
         const fullPrompt = `${systemInstruction}\n\nRecent History:\n${historyText}\n\nUser: ${prompt}`;
 
         if (provider === 'google') {
-            const genAI = new GoogleGenerativeAI(currentKey);
-            const models = ['gemini-1.5-flash', 'gemini-1.5-pro'];
-            const targetModel = models[modelIdx] || models[0];
+            const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-pro'];
+            const targetModel = models[modelIdx] || models[1];
             
-            updateStatus(`Generating with ${targetModel}...`, "status-generating");
-            const model = genAI.getGenerativeModel({ model: targetModel });
+            updateStatus(`G-Studio (${keyIdx + 1}): ${targetModel}...`, "status-generating");
             
-            const parts = [fullPrompt];
-            if (imageData) parts.push({ inlineData: { data: imageData.data, mimeType: imageData.type } });
-
-            const result = await model.generateContent(parts);
-            return `[Gemini]: ` + (await result.response).text();
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${currentKey}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+                })
+            });
+            
+            const data = await res.json();
+            if (data.error) throw new Error(data.error.message);
+            return `[Gemini]: ` + data.candidates[0].content.parts[0].text;
 
         } else if (provider === 'openrouter') {
-            const models = ['google/gemini-flash-1.5-exp:free', 'meta-llama/llama-3.1-8b-instruct:free', 'deepseek/deepseek-chat:free'];
+            const models = ['google/gemini-2.0-flash-exp:free', 'google/gemini-flash-1.5', 'meta-llama/llama-3.1-8b-instruct:free', 'deepseek/deepseek-chat:free', 'mistralai/mistral-7b-instruct:free'];
             const targetModel = models[modelIdx] || models[0];
             
-            updateStatus(`OpenRouter: ${targetModel}...`, "status-generating");
+            updateStatus(`OpenRouter (${keyIdx + 1}): ${targetModel}...`, "status-generating");
             
             const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${currentKey}`,
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": window.location.href, // Required for some free models
+                    "X-Title": "DEV AI Assistant"
                 },
                 body: JSON.stringify({
                     model: targetModel,
@@ -494,10 +504,11 @@ Project context: ${projectFiles.join(', ')}.`;
             return `[OpenRouter]: ` + data.choices[0].message.content;
 
         } else if (provider === 'groq') {
-            const models = ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
+            const models = ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'];
             const targetModel = models[modelIdx] || models[0];
 
-            updateStatus(`Groq: ${targetModel}...`, "status-generating");
+            updateStatus(`Groq (${keyIdx + 1}): ${targetModel}...`, "status-generating");
+            // ... (rest of groq call remains same)
 
             const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
@@ -517,11 +528,12 @@ Project context: ${projectFiles.join(', ')}.`;
 
     } catch (err) {
         console.error(`Key ${keyIdx + 1} Error:`, err.message);
-        // If current key has more models, try next model
-        if (modelIdx < 1) { // Try at least 2 models per key
+        const provider = detectProvider(currentKey);
+        const maxModels = provider === 'google' ? 4 : provider === 'openrouter' ? 5 : 4;
+
+        if (modelIdx < maxModels - 1) { 
             return callAI(prompt, imageData, keyIdx, modelIdx + 1, typingDiv);
         }
-        // Otherwise try next key
         return callAI(prompt, imageData, keyIdx + 1, 0, typingDiv);
     }
 };
