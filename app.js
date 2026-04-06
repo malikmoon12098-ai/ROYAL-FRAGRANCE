@@ -57,10 +57,20 @@ openPreviewBtn.onclick = async () => {
     }
 
     if (!htmlContent) return alert("Pehle koi index.html file banayein ya load karein!");
+
+    // ENHANCEMENT: Inline style.css for a full preview
+    let cssContent = openFiles['style.css'] || await readFile('style.css');
+    if (cssContent) {
+        htmlContent = htmlContent.replace('</head>', `<style>${cssContent}</style></head>`);
+    }
     
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    const newWin = window.open('about:blank', '_blank');
+    if (newWin) {
+        newWin.document.write(htmlContent);
+        newWin.document.close();
+    } else {
+        alert("Popup blocked! Plz allow popups for this site.");
+    }
 };
 
 // --- Puter AI Logic ---
