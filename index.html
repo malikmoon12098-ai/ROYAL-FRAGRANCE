@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DEV AI - Premium Assistant</title>
+    <title>DEV AI - Premium Developer Assistant</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script type="importmap">
       {
         "imports": {
-          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+          "@google/generative-ai": "https://esm.run/@google/generative-ai",
+          "marked": "https://esm.run/marked"
         }
       }
     </script>
-    <meta name="theme-color" content="#1a1a2e">
+    <meta name="theme-color" content="#0a0a1a">
 </head>
 <body class="dark">
     <div id="pwa-install-banner" class="hidden">
@@ -21,48 +24,74 @@
         <button id="install-btn">Yes</button>
     </div>
 
-    <div class="app-container">
-        <!-- Logo Section -->
-        <header>
-            <div class="logo-wrapper">
-                <img src="logo.svg" alt="DEV AI Logo" class="app-logo" onerror="this.src='https://via.placeholder.com/150?text=DEV+AI'">
-                <h1>DEV AI</h1>
-            </div>
-            <div id="drop-zone" class="drop-area">
-                <p>Khichiye aur phenkiye (Folder) yahan ya <span id="select-folder">click karein</span></p>
-            </div>
-        </header>
+    <div class="app-shell">
 
-        <!-- Main App Content -->
-        <main class="chat-wrapper">
-            <div id="chat-messages" class="messages-container">
-                <div class="message system">
-                    <p>Assalam-o-Alaikum! Main DEV AI hoon. Mujhy koi folder dein aur batayein kia kaam karna hai.</p>
+        <!-- LEFT: Live Code Panel -->
+        <div class="code-panel" id="code-panel">
+            <div class="code-panel-header">
+                <div class="code-panel-tabs" id="code-panel-tabs">
+                    <span class="tab active" id="tab-welcome">👾 DEV AI</span>
+                </div>
+                <button class="open-in-new" id="open-preview-btn" title="Open Preview" style="display:none">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </button>
+            </div>
+            <div class="code-panel-body" id="code-panel-body">
+                <div class="code-welcome">
+                    <div class="code-welcome-icon">⚡</div>
+                    <h2>Live Code View</h2>
+                    <p>Jab DEV AI code likhega,<br>yahan real-time nazar aayega.</p>
+                    <div class="code-welcome-steps">
+                        <div class="step"><span>1</span> Folder load karein</div>
+                        <div class="step"><span>2</span> App banane ko kaho</div>
+                        <div class="step"><span>3</span> Yahan code dekhein ✨</div>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Context Info -->
-            <div id="folder-info" class="folder-status hidden">
-                <span id="current-folder-name"></span>
-                <button id="clear-folder" title="Close Folder">×</button>
-            </div>
+        <!-- RIGHT: Chat Panel -->
+        <div class="app-container">
+            <!-- Slim Header -->
+            <header class="slim-header">
+                <div class="header-left">
+                    <h1 class="logo-text">DEV AI</h1>
+                    <div id="drop-zone" class="drop-area-mini">
+                        <span>Select Folder</span>
+                    </div>
+                </div>
+                <div id="folder-info" class="folder-status-top hidden">
+                    <span id="current-folder-name"></span>
+                    <button id="clear-folder" title="Close Folder">×</button>
+                </div>
+            </header>
 
-            <!-- Input Area -->
-            <div class="input-area">
-                <div class="api-key-config" id="api-config">
-                    <input type="password" id="api-key" placeholder="Enter Gemini API Key (Free tier)...">
-                    <button id="save-key">Bachao (Save)</button>
+            <!-- Main App Content -->
+            <main class="chat-wrapper">
+                <div id="chat-messages" class="messages-container">
+                    <div class="message system">
+                        <p>Assalam-o-Alaikum! Main DEV AI hoon. Mujhy koi folder dein aur batayein kia kaam karna hai.</p>
+                    </div>
                 </div>
-                <div class="chat-input-container">
-                    <textarea id="user-input" placeholder="Yahan apna sawal likhein..." rows="1"></textarea>
-                    <button id="send-btn">
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
-                        </svg>
-                    </button>
+
+                <!-- Input Area -->
+                <div class="input-area">
+                    <div class="api-key-config" id="api-config">
+                        <input type="text" id="api-key" placeholder="Enter Gemini API Key (Free tier)...">
+                        <button id="save-key">Bachao (Save)</button>
+                    </div>
+                    <div class="chat-input-container">
+                        <textarea id="user-input" placeholder="Yahan apna sawal likhein..." rows="1"></textarea>
+                        <button id="send-btn">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-            </div>
-        </main>
+            </main>
+        </div>
+
     </div>
 
     <script type="module" src="app.js"></script>

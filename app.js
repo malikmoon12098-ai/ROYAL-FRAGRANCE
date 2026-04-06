@@ -1,4 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { marked } from "marked";
+
 
 const chatMessages = document.getElementById('chat-messages');
 const userInput = document.getElementById('user-input');
@@ -7,12 +9,29 @@ const dropZone = document.getElementById('drop-zone');
 const apiKeyInput = document.getElementById('api-key');
 const saveKeyBtn = document.getElementById('save-key');
 const apiConfig = document.getElementById('api-config');
-const folderInfo = document.getElementById('folder-info');
+const folderInfo = document.querySelector('.folder-status-top');
 const currentFolderName = document.getElementById('current-folder-name');
-const clearFolderBtn = document.getElementById('clear-folder');
+const clearFolderBtn = id('clear-folder');
+
+// New IDE Elements
+const codePanelBody = id('code-panel-body');
+const codePanelTabs = id('code-panel-tabs');
+const openPreviewBtn = id('open-preview-btn');
+
+openPreviewBtn.onclick = () => {
+    // Basic preview: open the HTML content in a new tab
+    const htmlContent = openFiles['index.html'] || Object.values(openFiles)[0];
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+};
+
+function id(name) { return document.getElementById(name); }
 
 let projectFolder = null;
 let projectFiles = [];
+let chatHistory = []; 
+let openFiles = {}; // { filename: content }
 // Pre-configured by Antigravity as requested!
 let apiKey = localStorage.getItem('gemini_api_key') || '';
 
@@ -34,7 +53,7 @@ saveKeyBtn.addEventListener('click', () => {
 // File System Logic
 const handleFolderSelect = async () => {
     try {
-        const dirHandle = await window.showDirectoryPicker();
+        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
         await loadFolder(dirHandle);
     } catch (err) {
         console.error('Folder selection cancelled or failed', err);
@@ -46,27 +65,207 @@ dropZone.addEventListener('click', handleFolderSelect);
 const loadFolder = async (dirHandle) => {
     projectFolder = dirHandle;
     projectFiles = [];
+    chatHistory = [];
+    openFiles = {};
     
-    // Simple recursive scan (limited for now)
+    chatMessages.innerHTML = `
+        <div class="message system">
+            <p>Assalam-o-Alaikum! Main DEV AI hoon. Mujhy koi folder dein aur batayein kia kaam karna hai.</p>
+        </div>
+    `;
+    
+    // Reset Code Panel
+    codePanelTabs.innerHTML = '<span class="tab active">👾 DEV AI</span>';
+    resetCodeBody();
+
     for await (const entry of dirHandle.values()) {
         if (entry.kind === 'file') {
             projectFiles.push(entry.name);
         }
     }
 
+    // Try to load history file
+    try {
+        const historyHandle = await dirHandle.getFileHandle('.dev_ai_history.json', { create: false });
+        const file = await historyHandle.getFile();
+        const content = await file.text();
+        if (content) {
+            chatHistory = JSON.parse(content);
+            chatHistory.forEach(msg => {
+                addMessage(msg.role, msg.text, true); // Don't re-save what we loaded
+            });
+            addMessage('system', `Pichla kaam yaad agaya! ${chatHistory.length} messages load ho gaye hain.`, true);
+        }
+    } catch (e) {
+        console.log('No history found or failed to load', e);
+    }
+
     currentFolderName.innerText = `Folder: ${dirHandle.name} (${projectFiles.length} files)`;
     folderInfo.classList.remove('hidden');
     dropZone.classList.add('hidden');
-    addMessage('system', `Mubarak ho! Aapne "${dirHandle.name}" folder load kar liya hai. Ab batayein kia help chahiye?`);
+    
+    if (chatHistory.length === 0) {
+        addMessage('system', `Mubarak ho! Aapne "${dirHandle.name}" folder load kar liya hai. Ab batayein kia help chahiye?`);
+    }
 };
 
 // Chat Logic
-const addMessage = (role, text) => {
+const addMessage = (role, text, skipHistory = false) => {
     const div = document.createElement('div');
     div.className = `message ${role}`;
-    div.innerHTML = `<p>${text}</p>`;
+    
+    const html = role === 'system' ? `<p>${text}</p>` : marked.parse(text);
+    div.innerHTML = html;
+    
+    if (role === 'ai') {
+        const preElements = div.querySelectorAll('pre');
+        preElements.forEach(pre => {
+            const codeEl = pre.querySelector('code');
+            if (codeEl) {
+                const codeLines = codeEl.innerText.split('\n');
+                const firstLine = codeLines[0].trim();
+                const match = firstLine.match(/^(?:\/\/|\/\*|<!--|<#)?\s*FILE:\s*([a-zA-Z0-9_.-/]+)/i);
+                
+                if (match) {
+                    const filename = match[1];
+                    codeLines.shift();
+                    const cleanCode = codeLines.join('\n');
+                    codeEl.innerText = cleanCode; 
+                    
+                    // Update IDE Panel
+                    updateCodePanel(filename, cleanCode);
+
+                    const actionDiv = document.createElement('div');
+                    actionDiv.className = 'file-action';
+                    const saveBtn = document.createElement('button');
+                    saveBtn.className = 'save-file-btn';
+                    saveBtn.innerHTML = `💾 Save File: <strong>${filename}</strong>`;
+                    
+                    saveBtn.addEventListener('click', async () => {
+                        saveBtn.disabled = true;
+                        saveBtn.innerText = `⏳ Saving...`;
+                        const success = await writeProjectFile(filename, cleanCode);
+                        if (success) {
+                            saveBtn.innerText = `✅ Saved ${filename}`;
+                            saveBtn.classList.add('success');
+                        } else {
+                            saveBtn.innerText = `❌ Error`;
+                            saveBtn.disabled = false;
+                        }
+                    });
+                    
+                    actionDiv.appendChild(saveBtn);
+                    pre.parentNode.insertBefore(actionDiv, pre);
+                }
+            }
+        });
+    }
+
     chatMessages.appendChild(div);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    // Fix Scroll Logic
+    requestAnimationFrame(() => {
+        chatMessages.scrollTo({
+            top: chatMessages.scrollHeight,
+            behavior: 'smooth'
+        });
+    });
+
+    if (!skipHistory && (role === 'user' || role === 'ai')) {
+        chatHistory.push({ role, text });
+        if (chatHistory.length > 20) chatHistory.shift(); // Keep it light
+        saveHistory();
+    }
+};
+
+const updateCodePanel = (filename, content) => {
+    openFiles[filename] = content;
+    
+    // Upsert Tab
+    let tab = Array.from(codePanelTabs.children).find(t => t.dataset.file === filename);
+    if (!tab) {
+        tab = document.createElement('span');
+        tab.className = 'tab';
+        tab.dataset.file = filename;
+        tab.innerText = filename;
+        tab.onclick = () => showFileContent(filename);
+        codePanelTabs.appendChild(tab);
+    }
+    
+    showFileContent(filename);
+};
+
+const showFileContent = (filename) => {
+    // UI: Active Tab
+    Array.from(codePanelTabs.children).forEach(t => t.classList.remove('active'));
+    const activeTab = Array.from(codePanelTabs.children).find(t => t.dataset.file === filename);
+    if (activeTab) activeTab.classList.add('active');
+
+    // UI: Code Display
+    codePanelBody.innerHTML = `<pre class="code-display"><code>${escapeHTML(openFiles[filename])}</code></pre>`;
+    
+    if (filename.endsWith('.html')) {
+        openPreviewBtn.style.display = 'block';
+    }
+};
+
+const resetCodeBody = () => {
+    codePanelBody.innerHTML = `
+        <div class="code-welcome">
+            <div class="code-welcome-icon">⚡</div>
+            <h2>Live Code View</h2>
+            <p>Jab DEV AI code likhega,<br>yahan real-time nazar aayega.</p>
+        </div>
+    `;
+    openPreviewBtn.style.display = 'none';
+};
+
+const escapeHTML = (str) => {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+};
+
+const saveHistory = async () => {
+    if (!projectFolder) return;
+    try {
+        const historyHandle = await projectFolder.getFileHandle('.dev_ai_history.json', { create: true });
+        const writable = await historyHandle.createWritable();
+        await writable.write(JSON.stringify(chatHistory, null, 2));
+        await writable.close();
+    } catch (e) {
+        console.error('Failed to save history', e);
+    }
+};
+
+const writeProjectFile = async (filePath, content) => {
+    if (!projectFolder) {
+        alert("Pehle koi folder load karein!");
+        return false;
+    }
+    try {
+        const parts = filePath.split('/');
+        const filename = parts.pop();
+        
+        let currentDir = projectFolder;
+        for (const part of parts) {
+            if (part && part !== '.') {
+                currentDir = await currentDir.getDirectoryHandle(part, { create: true });
+            }
+        }
+        
+        const fileHandle = await currentDir.getFileHandle(filename, { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(content);
+        await writable.close();
+        
+        if (!projectFiles.includes(filePath)) {
+            projectFiles.push(filePath);
+            currentFolderName.innerText = `Folder: ${projectFolder.name} (${projectFiles.length} files)`;
+        }
+        return true;
+    } catch (err) {
+        console.error('Error writing file:', err);
+        return false;
+    }
 };
 
 const callGemini = async (prompt) => {
@@ -76,7 +275,29 @@ const callGemini = async (prompt) => {
         return;
     }
 
-    const combinedPrompt = `You are DEV AI. Speak in ROMAN URDU. Project files: ${projectFiles.join(', ')}. \n\n User Question: ${prompt}`;
+    // Construct context-rich prompt
+    const historyText = chatHistory.slice(-10).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.text}`).join('\n');
+    
+    const systemInstruction = `You are DEV AI, a highly capable Senior Full-Stack Developer. You speak in ROMAN URDU.
+You can create ANY app, script, or website the user asks for. You are a general-purpose AI agent.
+When you write code that should be saved to a file in the user's project, you MUST provide the code inside markdown code blocks, and the VERY FIRST LINE inside the code block MUST be a comment with the exact format:
+// FILE: filename.ext
+(or <!-- FILE: filename.ext --> for HTML).
+
+Example:
+\`\`\`html
+<!-- FILE: index.html -->
+<!DOCTYPE html>
+<html>...
+\`\`\`
+\`\`\`javascript
+// FILE: js/script.js
+console.log('Hello');
+\`\`\`
+
+Available Project files: ${projectFiles.join(', ')}.`;
+
+    const combinedPrompt = `${systemInstruction}\n\nPrevious Conversation:\n${historyText}\n\nUser Question: ${prompt}`;
 
     try {
         // Step 1: Find which model is available for this key
@@ -165,7 +386,16 @@ dropZone.addEventListener('drop', async (e) => {
 clearFolderBtn.addEventListener('click', () => {
     projectFolder = null;
     projectFiles = [];
+    chatHistory = []; // Reset history state
     folderInfo.classList.add('hidden');
     dropZone.classList.remove('hidden');
-    addMessage('system', 'Folder close kar diya gaya hai.');
+    
+    // Clear chat EXCEPT for initial system message
+    chatMessages.innerHTML = `
+        <div class="message system">
+            <p>Assalam-o-Alaikum! Main DEV AI hoon. Mujhy koi folder dein aur batayein kia kaam karna hai.</p>
+        </div>
+    `;
+    
+    addMessage('system', 'Folder close aur history reset kar di gayi hai.');
 });
