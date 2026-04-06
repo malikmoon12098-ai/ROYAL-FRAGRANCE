@@ -502,3 +502,140 @@ body.dark {
 }
 
 .hidden { display: none; }
+
+/* Multi-Key Styles */
+.slim-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.keys-btn {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.keys-btn:hover {
+    background: var(--accent);
+}
+
+.keys-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.keys-modal-content {
+    background: #0f0f20;
+    width: 350px;
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.keys-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.keys-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+#close-keys-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.8rem;
+    cursor: pointer;
+}
+
+.keys-list {
+    margin-bottom: 20px;
+    max-height: 150px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.key-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 14px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    border: 1px solid transparent;
+}
+
+.key-item.active {
+    border-color: var(--accent);
+    background: rgba(94, 92, 230, 0.1);
+}
+
+.delete-key-btn {
+    background: none;
+    border: none;
+    color: #ff5f56;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+.add-key-box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.add-key-box input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 10px;
+    color: white;
+    font-size: 0.85rem;
+}
+
+#add-key-confirm-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+.keys-note {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-align: center;
+}

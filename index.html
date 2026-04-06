@@ -60,9 +60,12 @@
                         <span>Select Folder</span>
                     </div>
                 </div>
-                <div id="folder-info" class="folder-status-top hidden">
-                    <span id="current-folder-name"></span>
-                    <button id="clear-folder" title="Close Folder">×</button>
+                <div class="header-right">
+                    <div id="folder-info" class="folder-status-top hidden">
+                        <span id="current-folder-name"></span>
+                        <button id="clear-folder" title="Close Folder">×</button>
+                    </div>
+                    <button id="manage-keys-btn" class="keys-btn">🔑 Keys <span id="keys-count">0</span></button>
                 </div>
             </header>
 
@@ -94,6 +97,24 @@
             </main>
         </div>
 
+    </div>
+
+    <!-- Keys Manager Modal -->
+    <div id="keys-manager" class="keys-modal hidden">
+        <div class="keys-modal-content">
+            <div class="keys-header">
+                <h3>Manage API Keys</h3>
+                <button id="close-keys-btn">×</button>
+            </div>
+            <div id="keys-list" class="keys-list">
+                <!-- Keys will be injected here -->
+            </div>
+            <div class="add-key-box">
+                <input type="password" id="new-key-input" placeholder="Nayi Gemini Key yahan daalein...">
+                <button id="add-key-confirm-btn">+</button>
+            </div>
+            <p class="keys-note">Aik key ki limit khatam hui to system khud switch kar lega.</p>
+        </div>
     </div>
 
     <script type="module" src="app.js"></script>

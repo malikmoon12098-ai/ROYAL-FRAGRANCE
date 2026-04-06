@@ -13,6 +13,15 @@ const folderInfo = document.querySelector('.folder-status-top');
 const currentFolderName = document.getElementById('current-folder-name');
 const clearFolderBtn = id('clear-folder');
 
+// Multi-Key Elements
+const manageKeysBtn = id('manage-keys-btn');
+const keysManager = id('keys-manager');
+const closeKeysBtn = id('close-keys-btn');
+const keysList = id('keys-list');
+const newKeyInput = id('new-key-input');
+const addKeyConfirmBtn = id('add-key-confirm-btn');
+const keysCount = id('keys-count');
+
 // New IDE Elements
 const codePanelBody = id('code-panel-body');
 const codePanelTabs = id('code-panel-tabs');
@@ -38,22 +47,64 @@ let projectFolder = null;
 let projectFiles = [];
 let chatHistory = []; 
 let openFiles = {}; // { filename: content }
-// Pre-configured by Antigravity as requested!
-let apiKey = localStorage.getItem('gemini_api_key') || '';
 
-if (apiKey) {
-    apiConfig.classList.add('hidden');
+// Multi-Key Logic
+let apiKeys = JSON.parse(localStorage.getItem('gemini_api_keys')) || [];
+let activeKeyIndex = 0;
+
+const updateKeysUI = () => {
+    keysCount.innerText = apiKeys.length;
+    keysList.innerHTML = apiKeys.map((key, index) => `
+        <div class="key-item ${index === activeKeyIndex ? 'active' : ''}">
+            <span>${key.substring(0, 8)}...${key.substring(key.length - 4)}</span>
+            <button class="delete-key-btn" onclick="removeKey(${index})">×</button>
+        </div>
+    `).join('');
+    
+    // Hide old config if keys exist
+    if (apiKeys.length > 0) apiConfig.classList.add('hidden');
+    else apiConfig.classList.remove('hidden');
+};
+
+window.removeKey = (index) => {
+    apiKeys.splice(index, 1);
+    localStorage.setItem('gemini_api_keys', JSON.stringify(apiKeys));
+    if (activeKeyIndex >= apiKeys.length) activeKeyIndex = 0;
+    updateKeysUI();
+};
+
+manageKeysBtn.onclick = () => keysManager.classList.toggle('hidden');
+closeKeysBtn.onclick = () => keysManager.classList.add('hidden');
+
+addKeyConfirmBtn.onclick = () => {
+    const key = newKeyInput.value.trim();
+    if (key) {
+        apiKeys.push(key);
+        localStorage.setItem('gemini_api_keys', JSON.stringify(apiKeys));
+        newKeyInput.value = '';
+        updateKeysUI();
+    }
+};
+
+updateKeysUI();
+
+// Legacy Support for single key migration
+const legacyKey = localStorage.getItem('gemini_api_key');
+if (legacyKey && !apiKeys.includes(legacyKey)) {
+    apiKeys.push(legacyKey);
+    localStorage.setItem('gemini_api_keys', JSON.stringify(apiKeys));
+    localStorage.removeItem('gemini_api_key');
+    updateKeysUI();
 }
 
-// Save API Key
+// Save API Key from old UI
 saveKeyBtn.addEventListener('click', () => {
     const key = apiKeyInput.value.trim();
     if (key) {
-        localStorage.setItem('gemini_api_key', key);
-        apiKey = key;
-        apiKeyInput.placeholder = "Key Saved! ✅";
+        apiKeys.push(key);
+        localStorage.setItem('gemini_api_keys', JSON.stringify(apiKeys));
         apiKeyInput.value = "";
-        setTimeout(() => apiConfig.classList.add('hidden'), 1000);
+        updateKeysUI();
     }
 });
 
@@ -308,53 +359,55 @@ const writeProjectFile = async (filePath, content) => {
     }
 };
 
-const callGemini = async (prompt, imageData = null, retryIndex = 0) => {
-    if (!apiKey) {
-        addMessage('system', 'Pehle apni Gemini API Key daalein!');
-        apiConfig.classList.remove('hidden');
+const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0) => {
+    if (apiKeys.length === 0) {
+        addMessage('system', 'Pehle koi API Key daalein!');
+        keysManager.classList.remove('hidden');
         return;
     }
 
+    // Wrap around if we ran out of keys
+    if (keyIdx >= apiKeys.length) {
+        return "Sari keys aur unke models ki limit khatam ho chuki hai. Plz thori der baad try karein.";
+    }
+
+    activeKeyIndex = keyIdx;
+    updateKeysUI();
+    const currentKey = apiKeys[keyIdx];
+
     try {
-        // Step 1: Discover ALL available models
-        const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${currentKey}`);
         const modelsData = await modelsRes.json();
         
         if (modelsData.error) {
-             const code = modelsData.error.code;
-             if (code === 401 || code === 403) {
-                 apiConfig.classList.remove('hidden');
-                 localStorage.removeItem('gemini_api_key');
-                 apiKey = '';
-                 return `API Key masla: ${modelsData.error.message}`;
-             }
-             return `API Error: ${modelsData.error.message}`;
+             console.error(`Key ${keyIdx} Error:`, modelsData.error.message);
+             return callGemini(prompt, imageData, keyIdx + 1, 0); // Try NEXT KEY
         }
 
         const validModels = modelsData.models
             ?.filter(m => m.supportedGenerationMethods?.includes('generateContent'))
-            .sort((a, b) => b.name.includes('pro') ? 1 : -1); // Try Pro models first
+            .sort((a, b) => b.name.includes('pro') ? 1 : -1);
 
         if (!validModels || validModels.length === 0) {
-            return "Koi bhi compatible model nahi mila.";
+            return callGemini(prompt, imageData, keyIdx + 1, 0); // Try NEXT KEY
         }
 
-        // If we ran out of models to try
-        if (retryIndex >= validModels.length) {
-            return "Saray available models ki limit khatam ho chuki hai. Plz 1 min baad try karein.";
+        if (modelIdx >= validModels.length) {
+            console.log(`Key ${keyIdx} models exhausted. Switching keys...`);
+            return callGemini(prompt, imageData, keyIdx + 1, 0); // Try NEXT KEY
         }
 
-        const selectedModel = validModels[retryIndex];
+        const selectedModel = validModels[modelIdx];
         const modelName = selectedModel.name.replace('models/', '');
         
-        console.log(`Trying Model [${retryIndex + 1}/${validModels.length}]: ${modelName}`);
+        console.log(`Trying Key [${keyIdx + 1}] Model [${modelIdx + 1}]: ${modelName}`);
 
-        const genAI = new GoogleGenerativeAI(apiKey);
+        const genAI = new GoogleGenerativeAI(currentKey);
         const model = genAI.getGenerativeModel({ model: modelName });
 
         const historyText = chatHistory.slice(-10).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.text}`).join('\n');
         const folderStatus = projectFolder ? `Active (Folder: ${projectFolder.name})` : "None";
-        const visionContext = imageData ? "\n[Note: User has attached a screenshot. Analyze it carefully.]" : "";
+        const visionContext = imageData ? "\n[Note: User has attached a screenshot.]" : "";
 
         const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer & UI/UX Designer. You speak in ROMAN URDU.
 Your goal is to build web applications that look and feel like PREMIUM, HIGH-END digital products. Always use modern aesthetics (Glassmorphism, Gradients, Premium Fonts). NO NPM.
@@ -371,13 +424,12 @@ Available Project files: ${projectFiles.join(', ')}.${visionContext}`;
         return `[${modelName}]: ` + response.text();
 
     } catch (err) {
-        // If Quota Exceeded (429), try the NEXT model in the chain
         if (err.message.includes('429') || err.message.includes('quota')) {
-            console.warn(`Model ${retryIndex} rate limited. Switching...`);
-            return callGemini(prompt, imageData, retryIndex + 1);
+            console.warn(`Key ${keyIdx} Model ${modelIdx} limited. Trying next model...`);
+            return callGemini(prompt, imageData, keyIdx, modelIdx + 1); // Try NEXT MODEL
         }
         console.error(err);
-        return `Masla: ${err.message}`;
+        return callGemini(prompt, imageData, keyIdx + 1, 0); // Try NEXT KEY on other errors
     }
 };
 
