@@ -17,9 +17,6 @@ const clearFolderBtn = id('clear-folder');
 const codePanelBody = id('code-panel-body');
 const codePanelTabs = id('code-panel-tabs');
 const openPreviewBtn = id('open-preview-btn');
-const terminalContainer = id('terminal-container');
-const terminalBody = id('terminal-body');
-const closeTerminalBtn = id('close-terminal');
 
 openPreviewBtn.onclick = () => {
     // Basic preview: open the HTML content in a new tab
@@ -121,16 +118,6 @@ const addMessage = (role, text, skipHistory = false) => {
     div.innerHTML = html;
     
     if (role === 'ai') {
-        // Detect Commands: ### COMMAND: npm install
-        const cmdMatches = text.match(/### COMMAND:\s*(.+)/g);
-        if (cmdMatches) {
-            terminalContainer.classList.remove('hidden');
-            cmdMatches.forEach(line => {
-                const cmd = line.replace('### COMMAND:', '').trim();
-                addTerminalLine(cmd);
-            });
-        }
-
         const preElements = div.querySelectorAll('pre');
         preElements.forEach(pre => {
             const codeEl = pre.querySelector('code');
@@ -231,25 +218,6 @@ const resetCodeBody = () => {
         </div>
     `;
     openPreviewBtn.style.display = 'none';
-};
-
-const addTerminalLine = (cmd) => {
-    const line = document.createElement('div');
-    line.className = 'terminal-line';
-    line.innerHTML = `<span><span class="text-dim">$</span> ${cmd}</span> <button class="copy-cmd-btn">Copy</button>`;
-    
-    line.querySelector('.copy-cmd-btn').onclick = () => {
-        navigator.clipboard.writeText(cmd);
-        line.querySelector('.copy-cmd-btn').innerText = 'Copied!';
-        setTimeout(() => line.querySelector('.copy-cmd-btn').innerText = 'Copy', 2000);
-    };
-
-    terminalBody.appendChild(line);
-    terminalBody.scrollTop = terminalBody.scrollHeight;
-};
-
-closeTerminalBtn.onclick = () => {
-    terminalContainer.classList.add('hidden');
 };
 
 const escapeHTML = (str) => {
