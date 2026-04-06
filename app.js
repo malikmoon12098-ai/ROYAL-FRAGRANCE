@@ -37,6 +37,8 @@ const keysList = id('keys-list');
 const newKeyInput = id('new-key-input');
 const addKeyConfirmBtn = id('add-key-confirm-btn');
 const keysCount = id('keys-count');
+const activeKeyInfo = id('active-key-info');
+const activeKeyNum = id('active-key-num');
 
 // Preview Handlers
 openPreviewBtn.onclick = () => {
@@ -60,14 +62,22 @@ const updateKeysUI = () => {
     keysCount.innerText = apiKeys.length;
     keysList.innerHTML = apiKeys.map((key, index) => `
         <div class="key-item ${index === activeKeyIndex ? 'active' : ''}">
-            <span>${key.substring(0, 8)}...${key.substring(key.length - 4)}</span>
+            <div class="key-label">
+                <span class="key-index">${index + 1}</span>
+                <span>${key.substring(0, 8)}...${key.substring(key.length - 4)}</span>
+            </div>
             <button class="delete-key-btn" onclick="removeKey(${index})">×</button>
         </div>
     `).join('');
     
-    // Hide old config if keys exist
-    if (apiKeys.length > 0) apiConfig.classList.add('hidden');
-    else apiConfig.classList.remove('hidden');
+    if (apiKeys.length > 0) {
+        apiConfig.classList.add('hidden');
+        activeKeyInfo.classList.remove('hidden');
+        activeKeyNum.innerText = activeKeyIndex + 1;
+    } else {
+        apiConfig.classList.remove('hidden');
+        activeKeyInfo.classList.add('hidden');
+    }
 };
 
 window.removeKey = (index) => {
@@ -384,7 +394,15 @@ const writeProjectFile = async (filePath, content) => {
     }
 };
 
-const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0) => {
+const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0, typingDiv = null) => {
+    const updateStatus = (text, className) => {
+        if (typingDiv) {
+            const p = typingDiv.querySelector('p');
+            if (p) p.innerText = text;
+            typingDiv.className = `message ai typing ${className}`;
+        }
+    };
+
     if (apiKeys.length === 0) {
         addMessage('system', 'Pehle koi API Key daalein!');
         keysManager.classList.remove('hidden');
@@ -394,6 +412,8 @@ const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0) =>
     if (keyIdx >= apiKeys.length) {
         return "Sari keys ki limit khatam ho chuki hai. Plz thori der baad try karein.";
     }
+
+    updateStatus(`Searching Key ${keyIdx + 1}...`, "status-searching");
 
     activeKeyIndex = keyIdx;
     updateKeysUI();
@@ -405,10 +425,9 @@ const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0) =>
         
         if (modelsData.error) {
              console.error(`Key ${keyIdx + 1} Fetch Error:`, modelsData.error.message);
-             return callGemini(prompt, imageData, keyIdx + 1, 0);
+             return callGemini(prompt, imageData, keyIdx + 1, 0, typingDiv);
         }
 
-        // Broad but safe filter
         const validModels = modelsData.models
             ?.filter(m => m.supportedGenerationMethods?.includes('generateContent'))
             .filter(m => {
@@ -420,27 +439,26 @@ const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0) =>
             })
             .map(m => m.name.replace('models/', ''))
             .sort((a, b) => {
-                // Priority: flash 1.5 -> pro 1.5 -> pro 1.0
-                if (a.includes('1.5-flash')) return -1;
-                if (b.includes('1.5-flash')) return 1;
-                if (a.includes('1.5-pro')) return -1;
-                if (b.includes('1.5-pro')) return 1;
-                return 0;
+                const rank = (name) => {
+                    if (name.includes('1.5-flash')) return 1;
+                    if (name.includes('2.0-flash')) return 2;
+                    if (name.includes('1.5-pro')) return 3;
+                    if (name.includes('pro')) return 4;
+                    return 5;
+                };
+                return rank(a) - rank(b);
             });
 
-        console.log(`Key ${keyIdx + 1} - Available Standard Models:`, validModels);
-
         if (!validModels || validModels.length === 0) {
-            console.warn(`Key ${keyIdx + 1} has no standard models. Switching keys...`);
-            return callGemini(prompt, imageData, keyIdx + 1, 0);
+            return callGemini(prompt, imageData, keyIdx + 1, 0, typingDiv);
         }
 
         if (modelIdx >= validModels.length) {
-            return callGemini(prompt, imageData, keyIdx + 1, 0);
+            return callGemini(prompt, imageData, keyIdx + 1, 0, typingDiv);
         }
 
         const modelName = validModels[modelIdx];
-        console.log(`Trying Key [${keyIdx + 1}] Model [${modelIdx + 1}]: ${modelName}`);
+        updateStatus(`Generating with ${modelName}...`, "status-generating");
 
         const genAI = new GoogleGenerativeAI(currentKey);
         const model = genAI.getGenerativeModel({ model: modelName });
@@ -450,6 +468,7 @@ const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0) =>
         const visionContext = imageData ? "\n[Note: User has attached a screenshot.]" : "";
 
         const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer & UI/UX Designer. You speak in ROMAN URDU.
+Jitna poocha jaye utna hi jawab dein. Be-wajah lambi baatein ya intro na dein.
 Your goal is to build web applications that look and feel like PREMIUM, HIGH-END digital products. Always use modern aesthetics (Glassmorphism, Gradients, Premium Fonts). NO NPM.
 
 Available Project files: ${projectFiles.join(', ')}.${visionContext}`;
@@ -465,13 +484,10 @@ Available Project files: ${projectFiles.join(', ')}.${visionContext}`;
 
     } catch (err) {
         const errorMsg = err.message ? err.message.toLowerCase() : "";
-        // Catch BOTH 429 (limit) and 404 (not found) and 400 (bad request)
         if (errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('limit') || errorMsg.includes('404') || errorMsg.includes('400')) {
-            console.warn(`Key ${keyIdx + 1} Model ${modelIdx + 1} failed (${errorMsg}). Trying next...`);
-            return callGemini(prompt, imageData, keyIdx, modelIdx + 1);
+            return callGemini(prompt, imageData, keyIdx, modelIdx + 1, typingDiv);
         }
-        console.error(`Serious error with Key ${keyIdx + 1}:`, err);
-        return callGemini(prompt, imageData, keyIdx + 1, 0);
+        return callGemini(prompt, imageData, keyIdx + 1, 0, typingDiv);
     }
 };
 
@@ -479,7 +495,6 @@ const handleSend = async () => {
     const text = userInput.value.trim();
     if (!text && !pendingImage) return;
 
-    // Use a temp variable for the image so we can clear UI immediately
     const imgToSend = pendingImage;
     pendingImage = null;
     imagePreviewContainer.classList.add('hidden');
@@ -493,7 +508,7 @@ const handleSend = async () => {
     typingDiv.innerHTML = '<p>Soch raha hoon...</p>';
     chatMessages.appendChild(typingDiv);
 
-    const aiResponse = await callGemini(text, imgToSend);
+    const aiResponse = await callGemini(text, imgToSend, 0, 0, typingDiv);
     typingDiv.remove();
     addMessage('ai', aiResponse);
 };

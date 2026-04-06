@@ -543,6 +543,17 @@ body.dark {
     z-index: 2000;
 }
 
+.active-key-indicator {
+    background: rgba(94, 92, 230, 0.1);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 5px;
+}
+
 .keys-modal-content {
     background: #0f0f20;
     width: 350px;
@@ -611,6 +622,26 @@ body.dark {
     background: rgba(94, 92, 230, 0.1);
 }
 
+.key-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.key-index {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.8rem;
+    background: rgba(94, 92, 230, 0.1);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid rgba(94, 92, 230, 0.2);
+}
+
 .delete-key-btn {
     background: none;
     border: none;
@@ -650,6 +681,31 @@ body.dark {
     font-size: 0.7rem;
     color: var(--text-dim);
     text-align: center;
+}
+
+/* Status Indicators */
+.typing p {
+    font-weight: 500;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-searching {
+    color: #ff9f0a !important;
+    animation: status-pulse 1.5s infinite;
+}
+
+.status-generating {
+    color: #30d158 !important;
+    animation: status-pulse 1.5s infinite;
+}
+
+@keyframes status-pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
 }
 
 .hidden { display: none !important; }
