@@ -308,99 +308,76 @@ const writeProjectFile = async (filePath, content) => {
     }
 };
 
-const callGemini = async (prompt, imageData = null) => {
+const callGemini = async (prompt, imageData = null, retryIndex = 0) => {
     if (!apiKey) {
-        addMessage('system', 'Pehle apni Gemini API Key daalein (Free waali)!');
+        addMessage('system', 'Pehle apni Gemini API Key daalein!');
         apiConfig.classList.remove('hidden');
         return;
     }
 
-    const historyText = chatHistory.slice(-10).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.text}`).join('\n');
-    const folderStatus = projectFolder ? `Active (Folder: ${projectFolder.name})` : "None (User hasn't selected a folder yet)";
-    
-    const visionContext = imageData ? "\n[Note: User has attached a screenshot. Analyze it carefully to fulfill the request.]" : "";
-
-    const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer & UI/UX Designer. You speak in ROMAN URDU.
-Your goal is to build web applications that look and feel like PREMIUM, HIGH-END digital products.
-
-STRICT DESIGN RULES:
-1. DESIGN EXCELLENCE: Every app you build must have a "WOW" factor. Use modern aesthetics:
-   - **Glassmorphism**: Use translucent surfaces with blur ('backdrop-filter: blur(20px)').
-   - **Gradients**: Use sophisticated, smooth gradients for backgrounds and buttons.
-   - **Typography**: Always import and use modern fonts from Google Fonts (e.g., Inter, Outfit, Syne, Poppins).
-   - **Shadows**: Use soft, layered shadows for depth, not harsh borders.
-2. COLOR PALETTES: Avoid generic colors (pure #0000ff). Use curated palettes (e.g., sleek dark themes with neon accents, or sophisticated light modes).
-3. NO PLACEHOLDERS: Generate real-looking data, not "Lorem Ipsum".
-4. RESPONSIVENESS: Every UI must look perfect on both Mobile and Desktop.
-
-STRICT CONVERSATIONAL RULES:
-1. If the user says "Hello", "Hi", or "Salam", DO NOT write any code. Just greet them back and ask what they want to build.
-2. Only generate code (HTML/JS/CSS) when the user specifically asks for an app, website, or logic.
-3. If the user asks for a project but hasn't selected a folder, remind them to "Select Folder".
-
-TECHNICAL RULES:
-- ALWAYS use CDN links for libraries (Tailwind, FontAwesome, etc.). NO NPM.
-- Use the // FILE: filename marker at the start of code blocks.
-
-[INTERNAL KNOWLEDGE]: Priority is HIGH-END AESTHETICS. If it looks basic, you have FAILED.
-
-Available Project files: ${projectFiles.join(', ')}.${visionContext}`;
-
-    const combinedPrompt = `[INTERNAL STATE: Folder Selection is ${folderStatus}]\n\n${systemInstruction}\n\nPrevious Conversation:\n${historyText}\n\nUser Question: ${prompt}`;
-
     try {
+        // Step 1: Discover ALL available models
         const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
         const modelsData = await modelsRes.json();
         
         if (modelsData.error) {
-            const code = modelsData.error.code;
-            if (code === 401 || code === 403) {
-                apiConfig.classList.remove('hidden');
-                localStorage.removeItem('gemini_api_key');
-                apiKey = '';
-                return `API Key masla: ${modelsData.error.message}. Key remove kar di gayi hai, dobara try karein.`;
-            } else {
-                return `API Busy (Error ${code}): ${modelsData.error.message}. Key save hai, thori der baad dobara koshish karein.`;
-            }
+             const code = modelsData.error.code;
+             if (code === 401 || code === 403) {
+                 apiConfig.classList.remove('hidden');
+                 localStorage.removeItem('gemini_api_key');
+                 apiKey = '';
+                 return `API Key masla: ${modelsData.error.message}`;
+             }
+             return `API Error: ${modelsData.error.message}`;
         }
 
-        // Step 2: Pick the most powerful model (1.5 Pro > 1.5 Flash > Others)
-        const preferredModels = ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'];
-        let selectedModel = null;
-        
-        for (const pref of preferredModels) {
-            selectedModel = modelsData.models?.find(m => m.name.includes(pref));
-            if (selectedModel) break;
-        }
-        
-        if (!selectedModel) {
-            selectedModel = modelsData.models?.find(m => m.supportedGenerationMethods?.includes('generateContent'));
+        const validModels = modelsData.models
+            ?.filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+            .sort((a, b) => b.name.includes('pro') ? 1 : -1); // Try Pro models first
+
+        if (!validModels || validModels.length === 0) {
+            return "Koi bhi compatible model nahi mila.";
         }
 
-        if (!selectedModel) {
-            return `Koi bhi model available nahi hai is API Key ke liye. Nai key try karein.`;
+        // If we ran out of models to try
+        if (retryIndex >= validModels.length) {
+            return "Saray available models ki limit khatam ho chuki hai. Plz 1 min baad try karein.";
         }
 
+        const selectedModel = validModels[retryIndex];
         const modelName = selectedModel.name.replace('models/', '');
+        
+        console.log(`Trying Model [${retryIndex + 1}/${validModels.length}]: ${modelName}`);
+
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: modelName });
 
+        const historyText = chatHistory.slice(-10).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.text}`).join('\n');
+        const folderStatus = projectFolder ? `Active (Folder: ${projectFolder.name})` : "None";
+        const visionContext = imageData ? "\n[Note: User has attached a screenshot. Analyze it carefully.]" : "";
+
+        const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer & UI/UX Designer. You speak in ROMAN URDU.
+Your goal is to build web applications that look and feel like PREMIUM, HIGH-END digital products. Always use modern aesthetics (Glassmorphism, Gradients, Premium Fonts). NO NPM.
+
+Available Project files: ${projectFiles.join(', ')}.${visionContext}`;
+
+        const combinedPrompt = `[INTERNAL STATE: Folder Selection is ${folderStatus}]\n\n${systemInstruction}\n\nPrevious Conversation:\n${historyText}\n\nUser Question: ${prompt}`;
+
         const parts = [combinedPrompt];
-        if (imageData) {
-            parts.push({
-                inlineData: {
-                    data: imageData.data,
-                    mimeType: imageData.type
-                }
-            });
-        }
+        if (imageData) parts.push({ inlineData: { data: imageData.data, mimeType: imageData.type } });
 
         const result = await model.generateContent(parts);
         const response = await result.response;
         return `[${modelName}]: ` + response.text();
+
     } catch (err) {
+        // If Quota Exceeded (429), try the NEXT model in the chain
+        if (err.message.includes('429') || err.message.includes('quota')) {
+            console.warn(`Model ${retryIndex} rate limited. Switching...`);
+            return callGemini(prompt, imageData, retryIndex + 1);
+        }
         console.error(err);
-        return `Masla: ${err.message}. (Tip: Ensure Key is valid and Internet is working)`;
+        return `Masla: ${err.message}`;
     }
 };
 
