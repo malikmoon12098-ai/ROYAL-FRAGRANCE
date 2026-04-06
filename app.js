@@ -1,4 +1,4 @@
-import { marked } from "marked";
+
 
 let pendingImage = null; // { data: base64, type: mime }
 
