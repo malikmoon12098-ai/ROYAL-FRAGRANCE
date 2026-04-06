@@ -462,12 +462,14 @@ Current Repository Files: ${projectFiles.join(', ')}.`;
         const fullPrompt = `${systemInstruction}\n\nRecent History:\n${historyText}\n\nUser: ${prompt}`;
 
         if (provider === 'google') {
-            const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-pro'];
+            // Updated models to most stable versions
+            const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
             const targetModel = models[modelIdx] || models[1];
             
             updateStatus(`G-Studio (${keyIdx + 1}): ${targetModel}...`, "status-generating");
             
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${currentKey}`, {
+            // Using v1 for better stability
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${targetModel}:generateContent?key=${currentKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -477,7 +479,7 @@ Current Repository Files: ${projectFiles.join(', ')}.`;
             });
             
             const data = await res.json();
-            if (data.error) throw new Error(data.error.message);
+            if (data.error) throw new Error(`${data.error.status}: ${data.error.message}`);
             return `[Gemini]: ` + data.candidates[0].content.parts[0].text;
 
         } else if (provider === 'openrouter') {
@@ -527,13 +529,23 @@ Current Repository Files: ${projectFiles.join(', ')}.`;
         }
 
     } catch (err) {
-        console.error(`Key ${keyIdx + 1} Error:`, err.message);
+        const errorMsg = err.message || "";
+        console.error(`Key ${keyIdx + 1} (${provider}) Failed:`, errorMsg);
+        
         const provider = detectProvider(currentKey);
-        const maxModels = provider === 'google' ? 4 : provider === 'openrouter' ? 5 : 4;
+        
+        // SMART SKIP: If quota or capacity issue, don't waste time on other models of SAME key
+        if (errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('quota') || errorMsg.includes('503')) {
+            console.warn(`Account ${keyIdx + 1} is busy/limited. Moving to next account...`);
+            return callAI(prompt, imageData, keyIdx + 1, 0, typingDiv);
+        }
 
+        const maxModels = provider === 'google' ? 3 : provider === 'openrouter' ? 5 : 4;
         if (modelIdx < maxModels - 1) { 
+            console.log(`Retrying with next model on same key...`);
             return callAI(prompt, imageData, keyIdx, modelIdx + 1, typingDiv);
         }
+        
         return callAI(prompt, imageData, keyIdx + 1, 0, typingDiv);
     }
 };
