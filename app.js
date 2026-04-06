@@ -2,16 +2,32 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { marked } from "marked";
 
 
-const chatMessages = document.getElementById('chat-messages');
-const userInput = document.getElementById('user-input');
-const sendBtn = document.getElementById('send-btn');
-const dropZone = document.getElementById('drop-zone');
-const apiKeyInput = document.getElementById('api-key');
-const saveKeyBtn = document.getElementById('save-key');
-const apiConfig = document.getElementById('api-config');
+let pendingImage = null; // { data: base64, type: mime }
+
+function id(name) { return document.getElementById(name); }
+
+// Console greeting for dev debugging
+console.log("DEV AI Initializing...");
+
+// DOM Elements
+const chatMessages = id('chat-messages');
+const userInput = id('user-input');
+const sendBtn = id('send-btn');
+const dropZone = id('drop-zone');
+const apiKeyInput = id('api-key');
+const saveKeyBtn = id('save-key');
+const apiConfig = id('api-config');
 const folderInfo = document.querySelector('.folder-status-top');
-const currentFolderName = document.getElementById('current-folder-name');
+const currentFolderName = id('current-folder-name');
 const clearFolderBtn = id('clear-folder');
+
+// IDE & Media Elements
+const codePanelBody = id('code-panel-body');
+const codePanelTabs = id('code-panel-tabs');
+const openPreviewBtn = id('open-preview-btn');
+const imagePreviewContainer = id('image-preview-container');
+const imagePreviewImg = id('image-preview');
+const removeImageBtn = id('remove-image');
 
 // Multi-Key Elements
 const manageKeysBtn = id('manage-keys-btn');
@@ -22,26 +38,14 @@ const newKeyInput = id('new-key-input');
 const addKeyConfirmBtn = id('add-key-confirm-btn');
 const keysCount = id('keys-count');
 
-// New IDE Elements
-const codePanelBody = id('code-panel-body');
-const codePanelTabs = id('code-panel-tabs');
-const openPreviewBtn = id('open-preview-btn');
-const imagePreviewContainer = id('image-preview-container');
-const imagePreviewImg = id('image-preview');
-const removeImageBtn = id('remove-image');
-
-let pendingImage = null; // { data: base64, type: mime }
-
+// Preview Handlers
 openPreviewBtn.onclick = () => {
-    // Basic preview: open the HTML content in a new tab
     const htmlContent = openFiles['index.html'] || Object.values(openFiles)[0];
     if (!htmlContent) return alert("Pehle koi code create karein!");
     const blob = new Blob([htmlContent], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
 };
-
-function id(name) { return document.getElementById(name); }
 
 let projectFolder = null;
 let projectFiles = [];
@@ -223,6 +227,9 @@ const addMessage = (role, text, skipHistory = false) => {
                     actionDiv.appendChild(saveBtn);
                     pre.parentNode.insertBefore(actionDiv, pre);
                 }
+                
+                // Final Highlight for chat
+                Prism.highlightElement(codeEl);
             }
         });
     }
@@ -267,9 +274,15 @@ const showFileContent = (filename) => {
     const activeTab = Array.from(codePanelTabs.children).find(t => t.dataset.file === filename);
     if (activeTab) activeTab.classList.add('active');
 
-    // UI: Code Display
-    codePanelBody.innerHTML = `<pre class="code-display"><code>${escapeHTML(openFiles[filename])}</code></pre>`;
+    // UI: Code Display + Highlighting
+    const ext = filename.split('.').pop();
+    const lang = ext === 'js' ? 'javascript' : ext === 'css' ? 'css' : 'html';
     
+    codePanelBody.innerHTML = `<pre class="code-display line-numbers"><code class="language-${lang}">${escapeHTML(openFiles[filename])}</code></pre>`;
+    
+    const codeEl = codePanelBody.querySelector('code');
+    Prism.highlightElement(codeEl);
+
     if (filename.endsWith('.html')) {
         openPreviewBtn.style.display = 'block';
     }
