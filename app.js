@@ -28,6 +28,18 @@ const removeImageBtn = id('remove-image');
 const aiStatusPill = id('ai-status-pill');
 const puterStatusText = id('puter-status-text');
 
+// Helper: Read a file's content directly from the project folder
+const readFile = async (filename) => {
+    if (!projectFolder) return null;
+    try {
+        const fileHandle = await projectFolder.getFileHandle(filename);
+        const file = await fileHandle.getFile();
+        return await file.text();
+    } catch (e) {
+        return null;
+    }
+};
+
 let isPuterEnabled = false;
 let projectFolder = null;
 let projectFiles = [];
@@ -35,9 +47,17 @@ let chatHistory = [];
 let openFiles = {}; // { filename: content }
 
 // Preview Handlers
-openPreviewBtn.onclick = () => {
-    const htmlContent = openFiles['index.html'] || Object.values(openFiles)[0];
-    if (!htmlContent) return alert("Pehle koi code create karein!");
+openPreviewBtn.onclick = async () => {
+    let htmlContent = openFiles['index.html'];
+    
+    // Fallback: If not in memory, try to read from folder directly
+    if (!htmlContent && projectFolder) {
+        htmlContent = await readFile('index.html');
+        if (htmlContent) openFiles['index.html'] = htmlContent;
+    }
+
+    if (!htmlContent) return alert("Pehle koi index.html file banayein ya load karein!");
+    
     const blob = new Blob([htmlContent], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
@@ -98,13 +118,12 @@ const callAI = async (prompt, typingDiv = null) => {
 
     try {
         const historyText = truncateHistory(chatHistory.slice(-10));
-        const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer. Speak in ROMAN URDU.
-CRITICAL RULES:
-1. JITNA POOCHA JAYE UTNA HI JAWAB DEIN.
-2. JAB TAK USER NA KAHE, tab tak coding shuru na karein.
-3. Code blocks MUST start with: // FILE: filename.ext
-4. Modern aesthetics (Glassmorphism, Dark Mode). NO NPM.
-Files in Project: ${projectFiles.join(', ')}.`;
+        const systemInstruction = `You are DEV AI. Speak in simple ROMAN URDU.
+- MUKHTASAR (SHORT) JAWAB DEIN. AIK YA DO LINES KAFI HAIN.
+- Faltu taqreerein aur explanations BILKUL NA KAREIN. 
+- Seedha kaam par tawajjo dein. 
+- Code rules: // FILE: filename.ext at top.
+Files: ${projectFiles.join(', ')}.`;
 
         const fullPrompt = `${systemInstruction}\n\nRecent History:\n${historyText}\n\nUser: ${prompt}`;
         const response = await callPuterAI(fullPrompt);
@@ -290,6 +309,13 @@ const handleFolderSelect = async () => {
 
         for await (const entry of dirHandle.values()) {
             if (entry.kind === 'file') projectFiles.push(entry.name);
+        }
+
+        // AUTO-CACHE: Try to load existing index.html for ready-preview
+        const existingIndex = await readFile('index.html');
+        if (existingIndex) {
+            openFiles['index.html'] = existingIndex;
+            updateCodePanel('index.html', existingIndex);
         }
 
         try {
