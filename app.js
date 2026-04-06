@@ -17,6 +17,9 @@ const clearFolderBtn = id('clear-folder');
 const codePanelBody = id('code-panel-body');
 const codePanelTabs = id('code-panel-tabs');
 const openPreviewBtn = id('open-preview-btn');
+const terminalContainer = id('terminal-container');
+const terminalBody = id('terminal-body');
+const closeTerminalBtn = id('close-terminal');
 
 openPreviewBtn.onclick = () => {
     // Basic preview: open the HTML content in a new tab
@@ -118,6 +121,16 @@ const addMessage = (role, text, skipHistory = false) => {
     div.innerHTML = html;
     
     if (role === 'ai') {
+        // Detect Commands: ### COMMAND: npm install
+        const cmdMatches = text.match(/### COMMAND:\s*(.+)/g);
+        if (cmdMatches) {
+            terminalContainer.classList.remove('hidden');
+            cmdMatches.forEach(line => {
+                const cmd = line.replace('### COMMAND:', '').trim();
+                addTerminalLine(cmd);
+            });
+        }
+
         const preElements = div.querySelectorAll('pre');
         preElements.forEach(pre => {
             const codeEl = pre.querySelector('code');
@@ -220,6 +233,25 @@ const resetCodeBody = () => {
     openPreviewBtn.style.display = 'none';
 };
 
+const addTerminalLine = (cmd) => {
+    const line = document.createElement('div');
+    line.className = 'terminal-line';
+    line.innerHTML = `<span><span class="text-dim">$</span> ${cmd}</span> <button class="copy-cmd-btn">Copy</button>`;
+    
+    line.querySelector('.copy-cmd-btn').onclick = () => {
+        navigator.clipboard.writeText(cmd);
+        line.querySelector('.copy-cmd-btn').innerText = 'Copied!';
+        setTimeout(() => line.querySelector('.copy-cmd-btn').innerText = 'Copy', 2000);
+    };
+
+    terminalBody.appendChild(line);
+    terminalBody.scrollTop = terminalBody.scrollHeight;
+};
+
+closeTerminalBtn.onclick = () => {
+    terminalContainer.classList.add('hidden');
+};
+
 const escapeHTML = (str) => {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 };
@@ -278,24 +310,22 @@ const callGemini = async (prompt) => {
     // Construct context-rich prompt
     const historyText = chatHistory.slice(-10).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.text}`).join('\n');
     
-    const systemInstruction = `You are DEV AI, a highly capable Senior Full-Stack Developer. You speak in ROMAN URDU.
-You can create ANY app, script, or website the user asks for. You are a general-purpose AI agent.
-When you write code that should be saved to a file in the user's project, you MUST provide the code inside markdown code blocks, and the VERY FIRST LINE inside the code block MUST be a comment with the exact format:
-// FILE: filename.ext
-(or <!-- FILE: filename.ext --> for HTML).
+    const systemInstruction = `You are DEV AI, a professional Autonomous Code Generator. You speak in ROMAN URDU.
+Your goal is to build fully functional web applications that RUN INSTANTLY in the browser.
 
-Example:
+STRICT RULES:
+1. DO NOT mention terminal, npm, node, or any local setup commands.
+2. NEVER ask the user to run "npm install", "npm start", or open a terminal.
+3. ALWAYS use CDN links for libraries (e.g., Tailwind via CDN, FontAwesome via CDN, Vue/React via ESM.run).
+4. THE USER CANNOT RUN COMMANDS. They just want to see the code and click the "Preview" button.
+5. If you need to "run" something, just provide the HTML/JS/CSS files and assume they will be opened directly.
+
+Format for files:
 \`\`\`html
 <!-- FILE: index.html -->
-<!DOCTYPE html>
-<html>...
+...
 \`\`\`
-\`\`\`javascript
-// FILE: js/script.js
-console.log('Hello');
-\`\`\`
-
-Available Project files: ${projectFiles.join(', ')}.`;
+... (rest of the prompt logic)`;
 
     const combinedPrompt = `${systemInstruction}\n\nPrevious Conversation:\n${historyText}\n\nUser Question: ${prompt}`;
 
