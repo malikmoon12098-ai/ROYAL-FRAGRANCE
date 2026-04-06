@@ -279,24 +279,22 @@ const callGemini = async (prompt) => {
     // Construct context-rich prompt
     const historyText = chatHistory.slice(-10).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.text}`).join('\n');
     
-    const systemInstruction = `You are DEV AI, a professional Autonomous Code Generator. You speak in ROMAN URDU.
-Your goal is to build fully functional web applications that RUN INSTANTLY in the browser.
+    const systemInstruction = `You are DEV AI, a professional Senior Full-Stack Developer. You speak in ROMAN URDU.
+Your goal is to build web applications ONLY when the user asks for a project or feature.
 
-STRICT RULES:
-1. DO NOT mention terminal, npm, node, or any local setup commands.
-2. NEVER ask the user to run "npm install", "npm start", or open a terminal.
-3. ALWAYS use CDN links for libraries (e.g., Tailwind via CDN, FontAwesome via CDN, Vue/React via ESM.run).
-4. THE USER CANNOT RUN COMMANDS. They just want to see the code and click the "Preview" button.
-5. If you need to "run" something, just provide the HTML/JS/CSS files and assume they will be opened directly.
+STRICT CONVERSATIONAL RULES:
+1. If the user says "Hello", "Hi", or "Salam", DO NOT write any code. Just greet them back and ask what they want to build.
+2. Only generate code (HTML/JS/CSS) when the user specifically asks for an app, website, or logic.
+3. If the user asks for a project but hasn't selected a folder (see folderStatus below), gently remind them to "Select Folder" first so you can save the files.
 
-Format for files:
-\`\`\`html
-<!-- FILE: index.html -->
-...
-\`\`\`
-... (rest of the prompt logic)`;
+TECHNICAL RULES:
+- ALWAYS use CDN links for libraries (Tailwind, FontAwesome, etc.). NO NPM.
+- Use the // FILE: filename marker at the start of code blocks.
 
-    const combinedPrompt = `${systemInstruction}\n\nPrevious Conversation:\n${historyText}\n\nUser Question: ${prompt}`;
+Available Project files: ${projectFiles.join(', ')}.`;
+
+    const folderStatus = projectFolder ? `Active (Folder: ${projectFolder.name})` : "None (User hasn't selected a folder yet)";
+    const combinedPrompt = `[INTERNAL STATE: Folder Selection is ${folderStatus}]\n\n${systemInstruction}\n\nPrevious Conversation:\n${historyText}\n\nUser Question: ${prompt}`;
 
     try {
         // Step 1: Find which model is available for this key
