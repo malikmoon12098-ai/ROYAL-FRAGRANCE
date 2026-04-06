@@ -17,10 +17,16 @@ const clearFolderBtn = id('clear-folder');
 const codePanelBody = id('code-panel-body');
 const codePanelTabs = id('code-panel-tabs');
 const openPreviewBtn = id('open-preview-btn');
+const imagePreviewContainer = id('image-preview-container');
+const imagePreviewImg = id('image-preview');
+const removeImageBtn = id('remove-image');
+
+let pendingImage = null; // { data: base64, type: mime }
 
 openPreviewBtn.onclick = () => {
     // Basic preview: open the HTML content in a new tab
     const htmlContent = openFiles['index.html'] || Object.values(openFiles)[0];
+    if (!htmlContent) return alert("Pehle koi code create karein!");
     const blob = new Blob([htmlContent], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
@@ -140,19 +146,27 @@ const addMessage = (role, text, skipHistory = false) => {
                     actionDiv.className = 'file-action';
                     const saveBtn = document.createElement('button');
                     saveBtn.className = 'save-file-btn';
-                    saveBtn.innerHTML = `💾 Save File: <strong>${filename}</strong>`;
+                    saveBtn.innerHTML = `⏳ Auto-Saving...`;
+                    
+                    const triggerSave = async () => {
+                        const success = await writeProjectFile(filename, cleanCode);
+                        if (success) {
+                            saveBtn.innerHTML = `✅ Auto-Saved: <strong>${filename}</strong>`;
+                            saveBtn.classList.add('success');
+                        } else {
+                            saveBtn.innerHTML = `💾 Click to Save: <strong>${filename}</strong>`;
+                            saveBtn.classList.remove('success');
+                        }
+                    };
+
+                    // Auto-Trigger on generation
+                    triggerSave();
                     
                     saveBtn.addEventListener('click', async () => {
                         saveBtn.disabled = true;
                         saveBtn.innerText = `⏳ Saving...`;
-                        const success = await writeProjectFile(filename, cleanCode);
-                        if (success) {
-                            saveBtn.innerText = `✅ Saved ${filename}`;
-                            saveBtn.classList.add('success');
-                        } else {
-                            saveBtn.innerText = `❌ Error`;
-                            saveBtn.disabled = false;
-                        }
+                        await triggerSave();
+                        saveBtn.disabled = false;
                     });
                     
                     actionDiv.appendChild(saveBtn);
@@ -216,9 +230,34 @@ const resetCodeBody = () => {
             <div class="code-welcome-icon">⚡</div>
             <h2>Live Code View</h2>
             <p>Jab DEV AI code likhega,<br>yahan real-time nazar aayega.</p>
+            <div class="code-welcome-steps">
+                <div class="step"><span>1</span> <p>Folder load karein</p></div>
+                <div class="step"><span>2</span> <p>App banane ko kaho (ya screenshot paste karein)</p></div>
+                <div class="step"><span>3</span> <p>Yahan code dekhein ✨</p></div>
+            </div>
         </div>
     `;
     openPreviewBtn.style.display = 'none';
+};
+
+const setPendingImage = (base64, type) => {
+    pendingImage = { data: base64, type };
+    imagePreviewImg.src = `data:${type};base64,${base64}`;
+    imagePreviewContainer.classList.remove('hidden');
+};
+
+removeImageBtn.onclick = () => {
+    pendingImage = null;
+    imagePreviewContainer.classList.add('hidden');
+};
+
+const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 };
 
 const escapeHTML = (str) => {
@@ -269,35 +308,47 @@ const writeProjectFile = async (filePath, content) => {
     }
 };
 
-const callGemini = async (prompt) => {
+const callGemini = async (prompt, imageData = null) => {
     if (!apiKey) {
         addMessage('system', 'Pehle apni Gemini API Key daalein (Free waali)!');
         apiConfig.classList.remove('hidden');
         return;
     }
 
-    // Construct context-rich prompt
     const historyText = chatHistory.slice(-10).map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.text}`).join('\n');
+    const folderStatus = projectFolder ? `Active (Folder: ${projectFolder.name})` : "None (User hasn't selected a folder yet)";
     
-    const systemInstruction = `You are DEV AI, a professional Senior Full-Stack Developer. You speak in ROMAN URDU.
-Your goal is to build web applications ONLY when the user asks for a project or feature.
+    const visionContext = imageData ? "\n[Note: User has attached a screenshot. Analyze it carefully to fulfill the request.]" : "";
+
+    const systemInstruction = `You are DEV AI, a world-class Senior Full-Stack Developer & UI/UX Designer. You speak in ROMAN URDU.
+Your goal is to build web applications that look and feel like PREMIUM, HIGH-END digital products.
+
+STRICT DESIGN RULES:
+1. DESIGN EXCELLENCE: Every app you build must have a "WOW" factor. Use modern aesthetics:
+   - **Glassmorphism**: Use translucent surfaces with blur ('backdrop-filter: blur(20px)').
+   - **Gradients**: Use sophisticated, smooth gradients for backgrounds and buttons.
+   - **Typography**: Always import and use modern fonts from Google Fonts (e.g., Inter, Outfit, Syne, Poppins).
+   - **Shadows**: Use soft, layered shadows for depth, not harsh borders.
+2. COLOR PALETTES: Avoid generic colors (pure #0000ff). Use curated palettes (e.g., sleek dark themes with neon accents, or sophisticated light modes).
+3. NO PLACEHOLDERS: Generate real-looking data, not "Lorem Ipsum".
+4. RESPONSIVENESS: Every UI must look perfect on both Mobile and Desktop.
 
 STRICT CONVERSATIONAL RULES:
 1. If the user says "Hello", "Hi", or "Salam", DO NOT write any code. Just greet them back and ask what they want to build.
 2. Only generate code (HTML/JS/CSS) when the user specifically asks for an app, website, or logic.
-3. If the user asks for a project but hasn't selected a folder (see folderStatus below), gently remind them to "Select Folder" first so you can save the files.
+3. If the user asks for a project but hasn't selected a folder, remind them to "Select Folder".
 
 TECHNICAL RULES:
 - ALWAYS use CDN links for libraries (Tailwind, FontAwesome, etc.). NO NPM.
 - Use the // FILE: filename marker at the start of code blocks.
 
-Available Project files: ${projectFiles.join(', ')}.`;
+[INTERNAL KNOWLEDGE]: Priority is HIGH-END AESTHETICS. If it looks basic, you have FAILED.
 
-    const folderStatus = projectFolder ? `Active (Folder: ${projectFolder.name})` : "None (User hasn't selected a folder yet)";
+Available Project files: ${projectFiles.join(', ')}.${visionContext}`;
+
     const combinedPrompt = `[INTERNAL STATE: Folder Selection is ${folderStatus}]\n\n${systemInstruction}\n\nPrevious Conversation:\n${historyText}\n\nUser Question: ${prompt}`;
 
     try {
-        // Step 1: Find which model is available for this key
         const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
         const modelsData = await modelsRes.json();
         
@@ -309,27 +360,42 @@ Available Project files: ${projectFiles.join(', ')}.`;
                 apiKey = '';
                 return `API Key masla: ${modelsData.error.message}. Key remove kar di gayi hai, dobara try karein.`;
             } else {
-                // Temporary error (like 503), don't remove the key!
                 return `API Busy (Error ${code}): ${modelsData.error.message}. Key save hai, thori der baad dobara koshish karein.`;
             }
         }
 
-        // Step 2: Pick first model that supports generateContent
-        const availableModel = modelsData.models?.find(m => 
-            m.supportedGenerationMethods?.includes('generateContent')
-        );
+        // Step 2: Pick the most powerful model (1.5 Pro > 1.5 Flash > Others)
+        const preferredModels = ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'];
+        let selectedModel = null;
+        
+        for (const pref of preferredModels) {
+            selectedModel = modelsData.models?.find(m => m.name.includes(pref));
+            if (selectedModel) break;
+        }
+        
+        if (!selectedModel) {
+            selectedModel = modelsData.models?.find(m => m.supportedGenerationMethods?.includes('generateContent'));
+        }
 
-        if (!availableModel) {
+        if (!selectedModel) {
             return `Koi bhi model available nahi hai is API Key ke liye. Nai key try karein.`;
         }
 
-        const modelName = availableModel.name.replace('models/', '');
-        
-        // Step 3: Call that model
+        const modelName = selectedModel.name.replace('models/', '');
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: modelName });
 
-        const result = await model.generateContent(combinedPrompt);
+        const parts = [combinedPrompt];
+        if (imageData) {
+            parts.push({
+                inlineData: {
+                    data: imageData.data,
+                    mimeType: imageData.type
+                }
+            });
+        }
+
+        const result = await model.generateContent(parts);
         const response = await result.response;
         return `[${modelName}]: ` + response.text();
     } catch (err) {
@@ -340,9 +406,14 @@ Available Project files: ${projectFiles.join(', ')}.`;
 
 const handleSend = async () => {
     const text = userInput.value.trim();
-    if (!text) return;
+    if (!text && !pendingImage) return;
 
-    addMessage('user', text);
+    // Use a temp variable for the image so we can clear UI immediately
+    const imgToSend = pendingImage;
+    pendingImage = null;
+    imagePreviewContainer.classList.add('hidden');
+
+    addMessage('user', text + (imgToSend ? ' [Screenshot Attached]' : ''));
     userInput.value = '';
     userInput.style.height = 'auto';
 
@@ -351,10 +422,21 @@ const handleSend = async () => {
     typingDiv.innerHTML = '<p>Soch raha hoon...</p>';
     chatMessages.appendChild(typingDiv);
 
-    const aiResponse = await callGemini(text);
+    const aiResponse = await callGemini(text, imgToSend);
     typingDiv.remove();
     addMessage('ai', aiResponse);
 };
+
+userInput.addEventListener('paste', async (e) => {
+    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+            const blob = item.getAsFile();
+            const base64 = await convertToBase64(blob);
+            setPendingImage(base64, item.type);
+        }
+    }
+});
 
 sendBtn.addEventListener('click', handleSend);
 userInput.addEventListener('keydown', (e) => {
