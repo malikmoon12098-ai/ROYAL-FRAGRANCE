@@ -384,8 +384,6 @@ const writeProjectFile = async (filePath, content) => {
     }
 };
 
-const standardModels = ['gemini-1.5-flash', 'gemini-1.5-pro'];
-
 const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0) => {
     if (apiKeys.length === 0) {
         addMessage('system', 'Pehle koi API Key daalein!');
@@ -393,23 +391,55 @@ const callGemini = async (prompt, imageData = null, keyIdx = 0, modelIdx = 0) =>
         return;
     }
 
-    // Wrap around if we ran out of keys
     if (keyIdx >= apiKeys.length) {
         return "Sari keys ki limit khatam ho chuki hai. Plz thori der baad try karein.";
-    }
-
-    // If all standard models for the current key are tried, move to next key
-    if (modelIdx >= standardModels.length) {
-        console.warn(`Key ${keyIdx + 1} standard models exhausted. Switching to next key...`);
-        return callGemini(prompt, imageData, keyIdx + 1, 0);
     }
 
     activeKeyIndex = keyIdx;
     updateKeysUI();
     const currentKey = apiKeys[keyIdx];
-    const modelName = standardModels[modelIdx];
 
     try {
+        const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${currentKey}`);
+        const modelsData = await modelsRes.json();
+        
+        if (modelsData.error) {
+             console.error(`Key ${keyIdx + 1} Fetch Error:`, modelsData.error.message);
+             return callGemini(prompt, imageData, keyIdx + 1, 0);
+        }
+
+        // Broad but safe filter
+        const validModels = modelsData.models
+            ?.filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+            .filter(m => {
+                const name = m.name.toLowerCase();
+                return name.includes('gemini') && 
+                       !name.includes('banana') && 
+                       !name.includes('2.5') && 
+                       !name.includes('deep-research');
+            })
+            .map(m => m.name.replace('models/', ''))
+            .sort((a, b) => {
+                // Priority: flash 1.5 -> pro 1.5 -> pro 1.0
+                if (a.includes('1.5-flash')) return -1;
+                if (b.includes('1.5-flash')) return 1;
+                if (a.includes('1.5-pro')) return -1;
+                if (b.includes('1.5-pro')) return 1;
+                return 0;
+            });
+
+        console.log(`Key ${keyIdx + 1} - Available Standard Models:`, validModels);
+
+        if (!validModels || validModels.length === 0) {
+            console.warn(`Key ${keyIdx + 1} has no standard models. Switching keys...`);
+            return callGemini(prompt, imageData, keyIdx + 1, 0);
+        }
+
+        if (modelIdx >= validModels.length) {
+            return callGemini(prompt, imageData, keyIdx + 1, 0);
+        }
+
+        const modelName = validModels[modelIdx];
         console.log(`Trying Key [${keyIdx + 1}] Model [${modelIdx + 1}]: ${modelName}`);
 
         const genAI = new GoogleGenerativeAI(currentKey);
@@ -435,12 +465,13 @@ Available Project files: ${projectFiles.join(', ')}.${visionContext}`;
 
     } catch (err) {
         const errorMsg = err.message ? err.message.toLowerCase() : "";
-        if (errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('limit')) {
-            console.warn(`Key ${keyIdx + 1} Model ${modelName} limited. Trying next standard model...`);
-            return callGemini(prompt, imageData, keyIdx, modelIdx + 1); // Try NEXT MODEL for same key
+        // Catch BOTH 429 (limit) and 404 (not found) and 400 (bad request)
+        if (errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('limit') || errorMsg.includes('404') || errorMsg.includes('400')) {
+            console.warn(`Key ${keyIdx + 1} Model ${modelIdx + 1} failed (${errorMsg}). Trying next...`);
+            return callGemini(prompt, imageData, keyIdx, modelIdx + 1);
         }
-        console.error(`Error with Key ${keyIdx + 1} and Model ${modelName}:`, err);
-        return callGemini(prompt, imageData, keyIdx + 1, 0); // Try NEXT KEY on other errors
+        console.error(`Serious error with Key ${keyIdx + 1}:`, err);
+        return callGemini(prompt, imageData, keyIdx + 1, 0);
     }
 };
 
