@@ -11,5 +11,21 @@
       "sizes": "512x512",
       "type": "image/svg+xml"
     }
+  ],
+  "file_handlers": [
+    {
+      "action": "./",
+      "accept": {
+        "application/octet-stream": [".*"]
+      },
+      "icons": [
+        {
+          "src": "logo.svg",
+          "sizes": "512x512",
+          "type": "image/svg+xml"
+        }
+      ],
+      "launch_type": "single-client"
+    }
   ]
 }

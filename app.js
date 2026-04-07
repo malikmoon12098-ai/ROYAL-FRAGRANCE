@@ -15,6 +15,7 @@ const dropZone = id('drop-zone');
 const folderInfo = document.querySelector('.folder-status-top');
 const currentFolderName = id('current-folder-name');
 const clearFolderBtn = id('clear-folder');
+const dragOverlay = id('drag-overlay');
 
 // IDE & Media Elements
 const codePanelBody = id('code-panel-body');
@@ -132,7 +133,9 @@ const callAI = async (prompt, typingDiv = null) => {
 - MUKHTASAR (SHORT) JAWAB DEIN. AIK YA DO LINES KAFI HAIN.
 - Faltu taqreerein aur explanations BILKUL NA KAREIN. 
 - Seedha kaam par tawajjo dein. 
-- Code rules: // FILE: filename.ext at top.
+- **CRITICAL**: Browser (Web) Apps likhein (HTML/CSS/JS) kyunke Live Preview sirf wahi dikha sakta hai. 
+- Tkinter ya Python Desktop GUI avoid karein jab tak user na kahe.
+- Always start code blocks with: // FILE: filename.ext
 Files: ${projectFiles.join(', ')}.`;
 
         const fullPrompt = `${systemInstruction}\n\nRecent History:\n${historyText}\n\nUser: ${prompt}`;
@@ -179,9 +182,13 @@ const addMessage = (role, text, skipHistory = false) => {
                     codeLines.shift();
                     cleanCode = codeLines.join('\n');
                 } else {
+                    // Smart Fallback Detection
                     if (rawContent.includes('<!DOCTYPE html') || rawContent.includes('<html')) filename = 'index.html';
-                    else if (rawContent.includes('{') && (rawContent.includes('margin') || rawContent.includes(':root'))) filename = 'style.css';
+                    else if (rawContent.includes('{') && (rawContent.includes('margin') || rawContent.includes(':root') || rawContent.includes('padding'))) filename = 'style.css';
                     else if (rawContent.includes('function') || rawContent.includes('addEventListener') || rawContent.includes('console.log')) filename = 'app.js';
+                    else if (rawContent.includes('import ') && (rawContent.includes('tkinter') || rawContent.includes('python'))) filename = 'app.py';
+                    else if (rawContent.includes('import ') || rawContent.includes('def ') || rawContent.includes('print(')) filename = 'script.py';
+                    else filename = 'output.txt'; // Ultimate fallback
                     cleanCode = rawContent;
                 }
 
@@ -306,9 +313,8 @@ const saveHistory = async () => {
 
 // --- Event Handlers ---
 
-const handleFolderSelect = async () => {
+const loadDirectory = async (dirHandle) => {
     try {
-        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
         projectFolder = dirHandle;
         projectFiles = [];
         chatHistory = [];
@@ -342,6 +348,15 @@ const handleFolderSelect = async () => {
         folderInfo.classList.remove('hidden');
         dropZone.classList.add('hidden');
         addMessage('system', `Mubarak ho! "${dirHandle.name}" load ho gaya hai.`);
+    } catch (err) {
+        console.error("Load directory error:", err);
+    }
+};
+
+const handleFolderSelect = async () => {
+    try {
+        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        await loadDirectory(dirHandle);
     } catch (err) {}
 };
 
@@ -349,8 +364,9 @@ dropZone.addEventListener('click', handleFolderSelect);
 
 const handleSend = async () => {
     const text = userInput.value.trim();
-    if (!text && !pendingImage) return;
+    if ((!text && !pendingImage) || sendBtn.disabled) return;
 
+    sendBtn.disabled = true;
     addMessage('user', text + (pendingImage ? ' [Image Attached]' : ''));
     userInput.value = '';
     userInput.style.height = 'auto';
@@ -360,9 +376,16 @@ const handleSend = async () => {
     typingDiv.innerHTML = '<p>Soch raha hoon...</p>';
     chatMessages.appendChild(typingDiv);
 
-    const aiResponse = await callAI(text, typingDiv);
-    typingDiv.remove();
-    addMessage('ai', aiResponse);
+    try {
+        const aiResponse = await callAI(text, typingDiv);
+        typingDiv.remove();
+        addMessage('ai', aiResponse);
+    } catch (err) {
+        typingDiv.remove();
+        addMessage('ai', "Error: AI response mein masla aa gaya.");
+    } finally {
+        sendBtn.disabled = false;
+    }
 };
 
 sendBtn.onclick = handleSend;
@@ -398,3 +421,51 @@ removeImageBtn.onclick = () => {
     pendingImage = null;
     imagePreviewContainer.classList.add('hidden');
 };
+
+// --- Launch Queue (PWA Icon Drop) ---
+if ('launchQueue' in window) {
+    launchQueue.setConsumer(async (launchParams) => {
+        if (launchParams.files.length > 0) {
+            const handle = launchParams.files[0];
+            if (handle.kind === 'directory') {
+                await loadDirectory(handle);
+            }
+        }
+    });
+}
+
+// --- Drag & Drop Flow (Window Drop) ---
+window.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dragOverlay.classList.remove('hidden');
+});
+
+window.addEventListener('dragleave', (e) => {
+    if (e.relatedTarget === null) {
+        dragOverlay.classList.add('hidden');
+    }
+});
+
+window.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    dragOverlay.classList.add('hidden');
+    
+    const items = e.dataTransfer.items;
+    if (items.length > 0) {
+        // Try to get as FileSystemHandle (Modern)
+        if (items[0].getAsFileSystemHandle) {
+            const handle = await items[0].getAsFileSystemHandle();
+            if (handle.kind === 'directory') {
+                await loadDirectory(handle);
+            }
+        } else if (items[0].webkitGetAsEntry) {
+            // Fallback for older browsers
+            const entry = items[0].webkitGetAsEntry();
+            if (entry.isDirectory) {
+                // webkitGetAsEntry doesn't give a full handle easily,
+                // but for this app we prioritize File System Access API
+                alert("Plz use a modern browser (Chrome/Edge) for folder drag-drop.");
+            }
+        }
+    }
+});
