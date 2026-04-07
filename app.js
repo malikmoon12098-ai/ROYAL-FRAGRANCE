@@ -425,10 +425,25 @@ removeImageBtn.onclick = () => {
 // --- Launch Queue (PWA Icon Drop) ---
 if ('launchQueue' in window) {
     launchQueue.setConsumer(async (launchParams) => {
-        if (launchParams.files.length > 0) {
-            const handle = launchParams.files[0];
-            if (handle.kind === 'directory') {
-                await loadDirectory(handle);
+        console.log("Launch Queue Triggered:", launchParams);
+        if (launchParams.files && launchParams.files.length > 0) {
+            for (const handle of launchParams.files) {
+                if (handle.kind === 'directory') {
+                    try {
+                        // Launch handles need permission for the first time
+                        const state = await handle.requestPermission({ mode: 'readwrite' });
+                        if (state === 'granted') {
+                            await loadDirectory(handle);
+                        } else {
+                            alert("Plz folder permissions grant karein!");
+                        }
+                    } catch (e) {
+                        console.error("Launch Handle Error:", e);
+                        // Fallback: try loading without permission if it's read-only
+                        await loadDirectory(handle);
+                    }
+                    break; 
+                }
             }
         }
     });
