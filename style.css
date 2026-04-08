@@ -800,6 +800,120 @@ body.dark {
     animation: status-pulse 1.5s infinite;
 }
 
+/* Integrated Preview Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: 0.3s;
+}
+
+.modal.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.95);
+}
+
+.modal-content {
+    background: #0f0f20;
+    width: 90vw;
+    height: 85vh;
+    border-radius: 24px;
+    border: 1px solid var(--glass-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+}
+
+.modal-header {
+    background: #1a1a30;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.modal-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.modal-actions button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    transition: 0.2s;
+}
+
+.modal-actions button:hover {
+    color: var(--text-main);
+}
+
+#refresh-preview svg { width: 18px; height: 18px; }
+
+.modal-body {
+    flex: 1;
+    background: white; /* Standard web bg for preview */
+}
+
+#preview-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* Chat Action Buttons */
+.run-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #34d399, #10b981);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    transition: 0.2s;
+}
+
+.run-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(16, 185, 129, 0.5);
+}
+
+/* Ensure system messages don't overlap */
+.message.system {
+    margin: 10px 0;
+    text-align: center;
+    width: 100%;
+}
+
 /* Drag and Drop Overlay */
 .drag-overlay {
     position: fixed;

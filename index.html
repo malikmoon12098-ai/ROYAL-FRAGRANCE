@@ -122,6 +122,27 @@
 
     </div>
 
+    <!-- Preview Modal -->
+    <div id="preview-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <span class="modal-icon">🚀</span>
+                    <span>Live Preview</span>
+                </div>
+                <div class="modal-actions">
+                    <button id="refresh-preview" title="Refresh">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                    </button>
+                    <button id="close-preview" title="Close">×</button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <iframe id="preview-frame" sandbox="allow-scripts allow-forms allow-modals"></iframe>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

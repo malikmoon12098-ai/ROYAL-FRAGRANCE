@@ -29,6 +29,12 @@ const removeImageBtn = id('remove-image');
 const aiStatusPill = id('ai-status-pill');
 const puterStatusText = id('puter-status-text');
 
+// Preview Modal Elements
+const previewModal = id('preview-modal');
+const previewFrame = id('preview-frame');
+const closePreviewBtn = id('close-preview');
+const refreshPreviewBtn = id('refresh-preview');
+
 // Helper: Read a file's content directly from the project folder
 const readFile = async (filename) => {
     if (!projectFolder) return null;
@@ -48,7 +54,7 @@ let chatHistory = [];
 let openFiles = {}; // { filename: content }
 
 // Preview Handlers
-openPreviewBtn.onclick = async () => {
+const showPreview = async () => {
     let htmlContent = openFiles['index.html'];
     
     // Fallback: If not in memory, try to read from folder directly
@@ -62,17 +68,24 @@ openPreviewBtn.onclick = async () => {
     // ENHANCEMENT: Inline style.css for a full preview
     let cssContent = openFiles['style.css'] || await readFile('style.css');
     if (cssContent) {
-        htmlContent = htmlContent.replace('</head>', `<style>${cssContent}</style></head>`);
+        if (htmlContent.includes('</head>')) {
+            htmlContent = htmlContent.replace('</head>', `<style>${cssContent}</style></head>`);
+        } else {
+            htmlContent = `<style>${cssContent}</style>` + htmlContent;
+        }
     }
     
-    const newWin = window.open('about:blank', '_blank');
-    if (newWin) {
-        newWin.document.write(htmlContent);
-        newWin.document.close();
-    } else {
-        alert("Popup blocked! Plz allow popups for this site.");
-    }
+    // Use srcdoc for safer and easier integrated preview
+    previewFrame.srcdoc = htmlContent;
+    previewModal.classList.remove('hidden');
 };
+
+openPreviewBtn.onclick = showPreview;
+closePreviewBtn.onclick = () => {
+    previewModal.classList.add('hidden');
+    previewFrame.srcdoc = "";
+};
+refreshPreviewBtn.onclick = showPreview;
 
 // --- Puter AI Logic ---
 
@@ -219,6 +232,19 @@ const addMessage = (role, text, skipHistory = false) => {
                         saveBtn.disabled = false;
                     };
                     actionDiv.appendChild(saveBtn);
+
+                    // Add RUN button if it's HTML
+                    if (filename.endsWith('.html')) {
+                        const runBtn = document.createElement('button');
+                        runBtn.className = 'run-btn';
+                        runBtn.innerHTML = `<span>🚀</span> Run Preview`;
+                        runBtn.onclick = () => {
+                            showFileContent(filename);
+                            showPreview();
+                        };
+                        actionDiv.appendChild(runBtn);
+                    }
+
                     pre.parentNode.insertBefore(actionDiv, pre);
                 }
                 Prism.highlightElement(codeEl);
