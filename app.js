@@ -143,12 +143,10 @@ const callAI = async (prompt, typingDiv = null) => {
     try {
         const historyText = truncateHistory(chatHistory.slice(-10));
         const systemInstruction = `You are DEV AI. Speak in simple ROMAN URDU.
-- MUKHTASAR (SHORT) JAWAB DEIN. AIK YA DO LINES KAFI HAIN.
-- Faltu taqreerein aur explanations BILKUL NA KAREIN. 
-- Seedha kaam par tawajjo dein. 
-- **CRITICAL**: Browser (Web) Apps likhein (HTML/CSS/JS) kyunke Live Preview sirf wahi dikha sakta hai. 
-- Tkinter ya Python Desktop GUI avoid karein jab tak user na kahe.
-- Always start code blocks with: // FILE: filename.ext
+- MUKHTASAR (SHORT) JAWAB DEIN. 
+- **CRITICAL**: Code likhte waqt hamesha TRIPLE BACKTICKS (\`\`\`) istemal karein.
+- Har code block ke pehle line par: // FILE: filename.ext
+- Browser Apps (HTML/CSS/JS) par focus karein.
 Files: ${projectFiles.join(', ')}.`;
 
         const fullPrompt = `${systemInstruction}\n\nRecent History:\n${historyText}\n\nUser: ${prompt}`;
@@ -176,80 +174,107 @@ const addMessage = (role, text, skipHistory = false) => {
     
     const html = role === 'system' ? `<p>${text}</p>` : marked.parse(text);
     div.innerHTML = html;
+
+    const processFileCode = (rawContent, anchorElement) => {
+        const codeLines = rawContent.split('\n');
+        const firstLine = codeLines[0].trim();
+        const match = firstLine.match(/^(?:\/\/|\/\*|<!--|<#)?\s*FILE:\s*([a-zA-Z0-9_.-/]+)/i);
+        
+        let filename = "";
+        let cleanCode = "";
+
+        if (match) {
+            filename = match[1];
+            codeLines.shift();
+            cleanCode = codeLines.join('\n');
+        } else {
+            // Fallbacks
+            if (rawContent.includes('<!DOCTYPE html') || rawContent.includes('<html')) filename = 'index.html';
+            else if (rawContent.includes('{') && (rawContent.includes('margin') || rawContent.includes(':root'))) filename = 'style.css';
+            else if (rawContent.includes('function') || rawContent.includes('addEventListener')) filename = 'app.js';
+            else filename = 'output.txt';
+            cleanCode = rawContent;
+        }
+
+        if (filename) {
+            updateCodePanel(filename, cleanCode);
+            const actionDiv = document.createElement('div');
+            actionDiv.className = 'file-action';
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'save-file-btn';
+            saveBtn.innerHTML = `⏳ Auto-Saving...`;
+            
+            const triggerSave = async () => {
+                const success = await writeProjectFile(filename, cleanCode);
+                if (success) {
+                    saveBtn.innerHTML = `✅ Auto-Saved: <strong>${filename}</strong>`;
+                    saveBtn.classList.add('success');
+                } else {
+                    saveBtn.innerHTML = `💾 Click to Save: <strong>${filename}</strong>`;
+                    saveBtn.classList.remove('success');
+                }
+            };
+            triggerSave();
+            saveBtn.onclick = async () => {
+                saveBtn.disabled = true;
+                saveBtn.innerText = `⏳ Saving...`;
+                await triggerSave();
+                saveBtn.disabled = false;
+            };
+            actionDiv.appendChild(saveBtn);
+
+            if (filename.endsWith('.html')) {
+                const runBtn = document.createElement('button');
+                runBtn.className = 'run-btn';
+                runBtn.innerHTML = `<span>🚀</span> Run Preview`;
+                runBtn.onclick = () => { showFileContent(filename); showPreview(); };
+                actionDiv.appendChild(runBtn);
+            }
+
+            anchorElement.parentNode.insertBefore(actionDiv, anchorElement);
+            return filename;
+        }
+        return null;
+    };
     
     if (role === 'ai') {
         const preElements = div.querySelectorAll('pre');
+        const processedFiles = new Set();
+
+        // Pass 1: Handle Standard Code Blocks
         preElements.forEach(pre => {
             const codeEl = pre.querySelector('code');
             if (codeEl) {
                 const rawContent = codeEl.innerText;
-                const codeLines = rawContent.split('\n');
-                const firstLine = codeLines[0].trim();
-                const match = firstLine.match(/^(?:\/\/|\/\*|<!--|<#)?\s*FILE:\s*([a-zA-Z0-9_.-/]+)/i);
-                
-                let filename = "";
-                let cleanCode = "";
-
-                if (match) {
-                    filename = match[1];
-                    codeLines.shift();
-                    cleanCode = codeLines.join('\n');
-                } else {
-                    // Smart Fallback Detection
-                    if (rawContent.includes('<!DOCTYPE html') || rawContent.includes('<html')) filename = 'index.html';
-                    else if (rawContent.includes('{') && (rawContent.includes('margin') || rawContent.includes(':root') || rawContent.includes('padding'))) filename = 'style.css';
-                    else if (rawContent.includes('function') || rawContent.includes('addEventListener') || rawContent.includes('console.log')) filename = 'app.js';
-                    else if (rawContent.includes('import ') && (rawContent.includes('tkinter') || rawContent.includes('python'))) filename = 'app.py';
-                    else if (rawContent.includes('import ') || rawContent.includes('def ') || rawContent.includes('print(')) filename = 'script.py';
-                    else filename = 'output.txt'; // Ultimate fallback
-                    cleanCode = rawContent;
-                }
-
-                if (filename) {
-                    codeEl.innerText = cleanCode; 
-                    updateCodePanel(filename, cleanCode);
-                    const actionDiv = document.createElement('div');
-                    actionDiv.className = 'file-action';
-                    const saveBtn = document.createElement('button');
-                    saveBtn.className = 'save-file-btn';
-                    saveBtn.innerHTML = `⏳ Auto-Saving...`;
-                    
-                    const triggerSave = async () => {
-                        const success = await writeProjectFile(filename, cleanCode);
-                        if (success) {
-                            saveBtn.innerHTML = `✅ Auto-Saved: <strong>${filename}</strong>`;
-                            saveBtn.classList.add('success');
-                        } else {
-                            saveBtn.innerHTML = `💾 Click to Save: <strong>${filename}</strong>`;
-                            saveBtn.classList.remove('success');
-                        }
-                    };
-                    triggerSave();
-                    saveBtn.onclick = async () => {
-                        saveBtn.disabled = true;
-                        saveBtn.innerText = `⏳ Saving...`;
-                        await triggerSave();
-                        saveBtn.disabled = false;
-                    };
-                    actionDiv.appendChild(saveBtn);
-
-                    // Add RUN button if it's HTML
-                    if (filename.endsWith('.html')) {
-                        const runBtn = document.createElement('button');
-                        runBtn.className = 'run-btn';
-                        runBtn.innerHTML = `<span>🚀</span> Run Preview`;
-                        runBtn.onclick = () => {
-                            showFileContent(filename);
-                            showPreview();
-                        };
-                        actionDiv.appendChild(runBtn);
-                    }
-
-                    pre.parentNode.insertBefore(actionDiv, pre);
-                }
+                const processResult = processFileCode(rawContent, pre);
+                if (processResult) processedFiles.add(processResult);
                 Prism.highlightElement(codeEl);
             }
         });
+
+        // Pass 2: Robust Detection (In case AI forgot backticks)
+        // Detect "// FILE: filename" even in plain text (if not already processed)
+        const fileRegex = /(?:\/\/|<!--)\s*FILE:\s*([a-zA-Z0-9_.-/]+)[\s\S]*?(?=(?:\/\/|<!--)\s*FILE:|$)/gi;
+        let match;
+        while ((match = fileRegex.exec(text)) !== null) {
+            const filename = match[1];
+            if (!processedFiles.has(filename)) {
+                const fullContent = match[0];
+                const codeLines = fullContent.split('\n');
+                codeLines.shift(); // Remove the // FILE line
+                const cleanCode = codeLines.join('\n').trim();
+                
+                // Add a visual hint that a file was detected
+                const hint = document.createElement('div');
+                hint.className = 'file-detected-hint';
+                hint.innerHTML = `<span>📂</span> Detected file: <strong>${filename}</strong> (Saved)`;
+                div.appendChild(hint);
+
+                updateCodePanel(filename, cleanCode);
+                writeProjectFile(filename, cleanCode);
+                processedFiles.add(filename);
+            }
+        }
     }
 
     chatMessages.appendChild(div);

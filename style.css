@@ -30,9 +30,9 @@ body.dark {
     width: 98vw;
     height: 95vh;
     display: flex;
-    gap: 15px;
+    gap: 12px;
     padding: 10px;
-    max-width: 1400px;
+    max-width: 1600px; /* Slightly wider for better panel space */
 }
 
 .code-panel {
@@ -48,7 +48,7 @@ body.dark {
 }
 
 .app-container {
-    flex: 1;
+    flex: 1.1; /* Give chat a bit more weight to prevent narrow code blocks */
     background: var(--card-bg);
     backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
@@ -132,6 +132,7 @@ body.dark {
 .messages-container {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal container scroll */
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -143,9 +144,10 @@ body.dark {
 .message {
     padding: 12px 18px;
     border-radius: 18px;
-    max-width: 85%;
-    font-size: 1rem;
+    max-width: 92%; /* Slightly wider bubble */
+    font-size: 0.95rem;
     line-height: 1.5;
+    word-wrap: break-word; /* Ensure text doesn't overflow */
 }
 
 .user {
@@ -460,12 +462,14 @@ body.dark {
 
 /* Markdown & Code Blocks */
 .message pre {
-    background: #0f0f1a;
-    padding: 15px;
-    border-radius: 8px;
+    background: #0d0d17;
+    padding: 12px;
+    border-radius: 10px;
     overflow-x: auto;
-    margin: 10px 0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 12px 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    width: 100%; /* Force code block to respect parent width */
+    max-width: 100%;
 }
 
 .message code {
@@ -936,6 +940,40 @@ body.dark {
     display: none;
 }
 
+/* Code Welcome Screen Improvement */
+.code-welcome {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 40px;
+    background: radial-gradient(circle at center, rgba(94, 92, 230, 0.05), transparent 70%);
+}
+
+.code-welcome h2 {
+    font-size: 1.8rem;
+    background: linear-gradient(90deg, #fff, #9ca3af);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+}
+
+/* File Detected Hint (For robust detection) */
+.file-detected-hint {
+    background: rgba(48, 209, 88, 0.1);
+    border: 1px dashed #30d158;
+    color: #30d158;
+    padding: 10px 15px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 .drag-overlay-content {
     text-align: center;
     padding: 40px;
