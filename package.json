@@ -1,0 +1,20 @@
+{
+  "name": "whatsapp",
+  "version": "1.0.0",
+  "description": "��B\u0000u\u0000i\u0000l\u0000d\u0000i\u0000n\u0000g\u0000 \u0000Z\u0000e\u0000n\u0000i\u0000t\u0000h\u0000 \u0000M\u0000e\u0000s\u0000s\u0000e\u0000n\u0000g\u0000e\u0000r\u0000\r\u0000 \u0000",
+  "main": "app.js",
+  "scripts": {
+    "build": "mkdir www 2>nul & xcopy /E /Y assets www\\assets\\ & copy index.html www\\ & copy app.js www\\ & copy style.css www\\ & copy manifest.json www\\ & copy sw.js www\\",
+    "sync": "npm run build && npx cap sync",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0"
+  }
+}

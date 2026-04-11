@@ -1,31 +1,38 @@
 {
-  "name": "DEV AI - Premium Developer",
-  "short_name": "DEV AI",
-  "start_url": "index.html",
+  "name": "M-Chat",
+  "short_name": "M-Chat",
+  "id": ".",
+  "scope": ".",
+  "description": "A premium, fast, and secure messaging application.",
+  "start_url": ".",
   "display": "standalone",
-  "background_color": "#0a0a1a",
-  "theme_color": "#1a1a2e",
+  "background_color": "#000000",
+  "theme_color": "#4fb087",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "logo.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml"
-    }
-  ],
-  "file_handlers": [
+      "src": "assets/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
-      "action": "./",
-      "accept": {
-        "application/octet-stream": [".*"]
-      },
-      "icons": [
-        {
-          "src": "logo.svg",
-          "sizes": "512x512",
-          "type": "image/svg+xml"
-        }
-      ],
-      "launch_type": "single-client"
+      "src": "assets/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

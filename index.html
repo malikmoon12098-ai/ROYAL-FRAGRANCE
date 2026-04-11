@@ -2,152 +2,333 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script>
-        // Force-purge old service workers and caches to ensure latest version loads
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-                for(let registration of registrations) registration.unregister();
-            });
-        }
-        if ('caches' in window) {
-            caches.keys().then(names => {
-                for (let name of names) caches.delete(name);
-            });
-        }
-    </script>
-    <title>DEV AI - Premium Developer Assistant</title>
-
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4fb087">
+    <title>M-Chat | Messenger</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <!-- Prism.js for Syntax Highlighting -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://js.puter.com/v2/"></script>
-    <meta name="theme-color" content="#0a0a1a">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
-</head>
-<body class="dark">
-    <div id="pwa-install-banner" class="hidden">
-        <span>Add to Home Screen?</span>
-        <button id="install-btn">Yes</button>
-    </div>
-
-    <!-- Drag Overlay -->
-    <div id="drag-overlay" class="drag-overlay hidden">
-        <div class="drag-overlay-content">
-            <div class="drag-icon">📂</div>
-            <h2>Folder Drop Karein</h2>
-            <p>App is folder ko select kar legi.</p>
-        </div>
-    </div>
-
-    <div class="app-shell">
-
-        <!-- LEFT: Live Code Panel -->
-        <div class="code-panel" id="code-panel">
-            <div class="code-panel-header">
-                <div class="code-panel-tabs" id="code-panel-tabs">
-                    <span class="tab active" id="tab-welcome">👾 DEV AI</span>
-                </div>
-                <button class="open-in-new" id="open-preview-btn" title="Open Preview" style="display:none">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                </button>
-            </div>
-            <div class="code-panel-body" id="code-panel-body">
-                <div class="code-welcome">
-                    <div class="code-welcome-icon">⚡</div>
-                    <h2>Live Code View</h2>
-                    <p>Jab DEV AI code likhega,<br>yahan real-time nazar aayega.</p>
-                    <div class="code-welcome-steps">
-                        <div class="step"><span>1</span> Folder load karein</div>
-                        <div class="step"><span>2</span> App banane ko kaho</div>
-                        <div class="step"><span>3</span> Yahan code dekhein ✨</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- RIGHT: Chat Panel -->
-        <div class="app-container">
-            <!-- Slim Header -->
-            <header class="slim-header">
-                <div class="header-left">
-                    <h1 class="logo-text">DEV AI</h1>
-                    <div id="drop-zone" class="drop-area-mini">
-                        <span>Select Folder</span>
-                    </div>
-                </div>
-                <div class="header-right">
-                    <div id="folder-info" class="folder-status-top hidden">
-                        <span id="current-folder-name"></span>
-                        <button id="clear-folder" title="Close Folder">×</button>
-                    </div>
-                    <div id="ai-status-pill" class="ai-status-pill">
-                        <span class="status-dot"></span>
-                        <span id="puter-status-text">Puter AI Connect...</span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Main App Content -->
-            <main class="chat-wrapper">
-                <div id="chat-messages" class="messages-container">
-                    <div class="message system">
-                        <p>Assalam-o-Alaikum! Main DEV AI hoon. Mujhy koi folder dein aur batayein kia kaam karna hai.</p>
-                    </div>
-                </div>
-                <div class="input-area">
-                    <div class="chat-input-container">
-                        <div id="image-preview-container" class="image-preview-box hidden">
-                            <img id="image-preview" src="" alt="Preview">
-                            <button id="remove-image" title="Remove Image">×</button>
-                        </div>
-                        <textarea id="user-input" placeholder="Yahan apna sawal likhein..." rows="1"></textarea>
-                        <button id="send-btn">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </main>
-        </div>
-
-    </div>
-
-    <!-- Preview Modal -->
-    <div id="preview-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">
-                    <span class="modal-icon">🚀</span>
-                    <span>Live Preview</span>
-                </div>
-                <div class="modal-actions">
-                    <button id="refresh-preview" title="Refresh">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                    </button>
-                    <button id="close-preview" title="Close">×</button>
-                </div>
-            </div>
-            <div class="modal-body">
-                <iframe id="preview-frame" sandbox="allow-scripts allow-forms allow-modals"></iframe>
-            </div>
-        </div>
-    </div>
-
-    <script type="module" src="app.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <link rel="apple-touch-icon" href="assets/logo.png">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- MQTT.js Web SDK -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+          console.log('Service Worker Registered');
+        });
+      }
     </script>
+</head>
+<body class="dark-theme">
+    
+    <!-- Install Discovery Screen -->
+    <div id="install-screen" class="screen">
+        <div class="onboarding-content fade-in" style="text-align:center;">
+            <div class="logo-box" style="margin-bottom: 30px;">
+                <img src="assets/logo.png" alt="M-Chat Logo" style="width: 100px; filter: drop-shadow(0 0 15px var(--primary));">
+            </div>
+            <h1 style="font-size: 2.22rem; margin-bottom: 10px;">M-Chat</h1>
+            <p style="color: var(--text-dim); margin-bottom: 40px;">Install the app on your device for the best messaging experience.</p>
+            
+            <button id="pwa-install-btn" class="primary-btn" style="width: 100%; margin-bottom: 12px;">
+                Install M-Chat App
+            </button>
+            <div id="manual-install-hint" style="font-size: 0.8rem; color: var(--text-dim); text-align: left; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                <strong>Can't click install?</strong><br>
+                • <em>iOS/Safari:</em> Tap the Share icon ⏍ and select "Add to Home Screen".<br>
+                • <em>Desktop:</em> Click the install icon 🖥️ in your URL address bar.
+            </div>
+        </div>
+    </div>
+
+    <!-- Splash Screen -->
+    <div id="splash-screen" class="screen active">
+        <div class="splash-content">
+            <div class="logo-container" style="margin-bottom: 20px;">
+                <img src="assets/logo.png" alt="M-Chat Logo" style="width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 0 20px rgba(79, 176, 135, 0.4));">
+            </div>
+            <h1 class="glow-text">M-Chat</h1>
+            <div class="loader"></div>
+        </div>
+    </div>
+
+    <!-- Onboarding Screen -->
+    <div id="onboarding-screen" class="screen">
+        <div class="onboarding-card glass">
+            <div class="logo-container" style="text-align: center; margin-bottom: 15px;">
+                <img src="assets/logo.png" alt="Logo" style="width: 60px; height: 60px;">
+            </div>
+            <h2>Welcome to M-Chat</h2>
+            <p>Enter your name to get started</p>
+            <div class="input-group">
+                <input type="text" id="user-name-input" placeholder="Your Name" autocomplete="off">
+            </div>
+
+            <!-- Removed DP creation system as requested -->
+            <div style="margin: 20px 0;">
+                 <p style="font-size: 0.8rem; color: var(--text-dim);">A profile avatar will be automatically created from your name.</p>
+            </div>
+
+            <button id="generate-id-btn" class="primary-btn">Generate Account</button>
+            <div id="onboarding-status" class="status-msg"></div>
+        </div>
+    </div>
+
+    <!-- Registration Success Screen -->
+    <div id="success-screen" class="screen">
+        <div class="success-card glass">
+            <div class="success-icon">✓</div>
+            <h2>Account Created!</h2>
+            <p>Your unique M-Chat ID is:</p>
+            <div class="generated-id-box" id="display-id">0200000000</div>
+            <p class="small-hint">Safe this ID for your records.</p>
+            <button id="start-chatting-btn" class="primary-btn">Start Chatting</button>
+        </div>
+    </div>
+
+    <!-- Main Message App -->
+    <div id="app-screen" class="screen fade-in">
+        <nav class="app-header glass">
+            <div class="header-left">
+                <div class="profile-pic-container">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Profile" id="my-profile-pic">
+                </div>
+                <div class="header-title">
+                    <h1 id="my-name-display">M-Chat</h1>
+                    <span id="my-id-display" class="id-badge">0200xxxxxxxx</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="hard-refresh-btn" class="icon-btn" title="Hard Refresh" style="margin-right: 10px;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 4v6h-6"></path>
+                        <path d="M1 20v-6h6"></path>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                </button>
+                <button id="settings-btn" class="icon-btn" title="Settings">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+
+                <!-- Settings Dropdown -->
+                <div id="settings-dropdown" class="settings-dropdown glass" style="display:none;">
+                    <button id="edit-profile-btn" class="settings-item">
+                        <span>✏️</span> Edit Profile
+                    </button>
+                    <button id="block-list-btn" class="settings-item">
+                        <span>🚫</span> Block List
+                    </button>
+                    <div class="settings-divider"></div>
+                    <button id="share-app-btn" class="settings-item">
+                        <span>🚀</span> Share App
+                    </button>
+                    <div class="settings-divider"></div>
+                    <button id="delete-account-btn" class="settings-item danger">
+                        <span>🗑️</span> Delete Account
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <main id="chat-list-container">
+            <div class="search-container">
+                <div class="search-bar-wrapper glass">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="chat-search-input" placeholder="Search contacts...">
+                </div>
+                <button id="open-add-modal-btn" class="add-friend-btn glass">Add Contact</button>
+            </div>
+            
+            <div id="chat-items-list">
+                <!-- Chat items will be injected here -->
+                <div class="chat-item ripple">
+                    <div class="avatar-box">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" alt="Sarah">
+                    </div>
+                    <div class="chat-info">
+                        <div class="chat-top">
+                            <span class="chat-name">System Bot</span>
+                            <span class="chat-time">12:45 PM</span>
+                        </div>
+                        <div class="chat-bottom">
+                            <span class="chat-preview">Welcome to M-Chat! Start messaging.</span>
+                            <span class="unread-count">1</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Chat View (Hidden by default) -->
+    <div id="chat-view" class="overlay-screen">
+        <nav class="chat-header glass">
+            <button id="back-to-list" class="icon-btn back-btn">←</button>
+            <div class="chat-header-info" style="display:flex; align-items:center; gap:10px;">
+                <div class="mini-avatar-container">
+                    <img src="" alt="" id="active-chat-avatar" class="mini-avatar">
+                </div>
+                <div class="chat-header-text">
+                    <h2 id="active-chat-name" style="font-size:1.1rem; margin:0;">Recipient Name</h2>
+                    <span id="header-status" class="online-status" style="font-size:0.75rem; color:var(--primary);">...</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn"><i class="call-icon"></i></button>
+                <button class="icon-btn"><i class="video-icon"></i></button>
+            </div>
+        </nav>
+        
+        <div id="message-container">
+            <!-- Messages injected here -->
+        </div>
+
+        <!-- Reply Preview Area -->
+        <div id="reply-preview-container" class="glass" style="display:none; padding:10px; position:relative; margin:0 15px; border-radius:12px 12px 0 0; border:1px solid var(--border-glass); border-bottom:none; background: rgba(255,255,255,0.05);">
+            <button id="close-reply-btn" style="position:absolute; top:5px; right:10px; background:transparent; color:var(--text-dim); border:none; cursor:pointer; font-size:1.2rem;">×</button>
+            <div style="border-left: 3px solid var(--primary); padding-left: 10px; overflow: hidden;">
+                <div id="reply-preview-name" style="color:var(--primary); font-size:0.8rem; font-weight:bold; margin-bottom:2px;">Name</div>
+                <div id="reply-preview-text" style="font-size:0.85rem; color:var(--text-dim); white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">Message content...</div>
+            </div>
+        </div>
+
+        <!-- Image Preview Above Input -->
+        <div id="image-preview-container" class="glass" style="display:none; padding:10px; position:relative; margin:0 15px; border-radius:12px; border:1px solid var(--border-glass);">
+            <button id="close-preview-btn" style="position:absolute; top:-10px; right:-10px; background:#ff3b3b; color:white; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; font-weight:bold;">×</button>
+            <img id="image-preview-img" src="" style="width:100%; max-height:150px; object-fit:contain; border-radius:8px;">
+        </div>
+
+        <div class="input-area glass">
+            <input type="file" id="chat-file-input" style="display:none;">
+            <button class="icon-btn" id="attach-btn" title="Attach Photo">+</button>
+            <div style="flex:1; position:relative; display:flex; align-items:center;">
+                <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+                <div id="recording-overlay" style="display:none; position:absolute; left:0; width:100%; height:100%; background:var(--bg-dark); color:var(--primary); align-items:center; padding-left:15px; font-weight:600; font-size:0.9rem;">
+                    <span class="recording-dot"></span> Recording... <span style="margin-left:auto; font-size:0.7rem; color:var(--text-dim); margin-right:10px;">Slide to cancel ←</span>
+                </div>
+            </div>
+            <div id="action-btns" style="display:flex; gap:8px;">
+                <button class="send-btn" id="mic-btn" style="background:rgba(255,255,255,0.05) !important; color:white !important;">🎤</button>
+                <button class="send-btn" id="send-btn" style="display:none;">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Account Confirmation Modal -->
+    <div id="delete-modal" class="modal-backdrop" style="display:none;">
+        <div class="modal-box glass">
+            <h3>Delete Account?</h3>
+            <p>This action is permanent and <strong>cannot be undone</strong>. All your data will be erased.</p>
+            <div class="modal-actions">
+                <button id="cancel-delete-btn" class="modal-btn cancel-btn">Cancel</button>
+                <button id="confirm-delete-btn" class="modal-btn delete-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Permissions Center Modal -->
+    <div id="permission-modal" class="modal-backdrop" style="display:none; z-index: 10000;">
+        <div class="modal-box glass" style="max-width: 350px; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 15px;">🔔</div>
+            <h3 style="margin-bottom: 10px;">Enable Notifications</h3>
+            <p style="font-size: 0.9rem; color: var(--text-dim); margin-bottom: 25px;">To receive messages while the app is in the background, please allow notifications.</p>
+            
+            <div class="modal-actions" style="flex-direction: column; gap: 10px;">
+                <button id="allow-notifications-btn" class="primary-btn" style="width: 100%;">Enable & Continue</button>
+                <button id="skip-notifications-btn" class="modal-btn cancel-btn" style="width: 100%; margin-top: 5px;">Not Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Block List Modal -->
+    <div id="block-list-modal" class="modal-backdrop" style="display:none; align-items:flex-start; padding-top:50px;">
+        <div class="modal-box glass" style="width:100%; max-width:400px; height:70vh; display:flex; flex-direction:column; padding:0;">
+            <div style="padding:20px; border-bottom:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;">Blocked Contacts</h3>
+                <button id="close-block-list-btn" style="background:transparent; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <div id="blocked-items-container" style="flex:1; overflow-y:auto; padding:10px;">
+                <!-- Blocked items injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Block Alert UI Base -->
+    <div id="block-alert-modal" class="modal-backdrop" style="display:none; z-index: 20000; align-items:center; justify-content:center; backdrop-filter:none; background:transparent;">
+        <div class="glass" style="padding:10px 20px; border-radius:30px; background:rgba(0,0,0,0.8); color:white; font-size:0.9rem; text-align:center;">
+            This user has blocked you.
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="edit-profile-modal" class="modal-backdrop" style="display:none;">
+        <div class="modal-box glass">
+            <h3>Edit Profile</h3>
+            <!-- DP system removed -->
+            <div style="text-align: center; margin-bottom: 10px;">
+                <p style="font-size: 0.8rem; color: var(--text-dim);">Your profile initial will update automatically.</p>
+            </div>
+            <div class="input-group" style="margin-top:20px;">
+                <input type="text" id="edit-name-input" placeholder="Your Name" autocomplete="off">
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-edit-btn" class="modal-btn cancel-btn">Cancel</button>
+                <button id="save-edit-btn" class="modal-btn save-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Context Menu (Right Click / Long Press) -->
+    <div id="msg-context-menu" style="display:none; position:fixed; z-index:10000; background:var(--bg-glass); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.1); border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.5); width: 140px; overflow:hidden;">
+        <div id="ctx-reply-btn" style="padding:12px 15px; color:white; font-size:0.9rem; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; align-items:center; gap:8px;">↩ Reply</div>
+        <div id="ctx-delete-btn" style="padding:12px 15px; color:#ff3b3b; font-size:0.9rem; cursor:pointer; display:flex; align-items:center; gap:8px;">🗑️ Delete</div>
+    </div>
+
+    <!-- Delete Message Modal (3 Options) -->
+    <div id="delete-msg-modal" class="modal-backdrop" style="display:none; z-index: 9999;">
+        <div class="modal-box glass">
+            <h3>Delete Message?</h3>
+            <div class="modal-actions" style="flex-direction: column; gap:10px; margin-top:20px;">
+                <button id="delete-everyone-btn" class="modal-btn delete-btn" style="background: #ff3b3b; width:100%;">Delete for Everyone</button>
+                <button id="delete-for-me-btn" class="modal-btn save-btn" style="width:100%;">Delete for Me</button>
+                <button id="cancel-msg-delete" class="modal-btn cancel-btn" style="width:100%;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Contact Modal -->
+    <div id="add-contact-modal" class="modal-backdrop" style="display:none;">
+        <div class="modal-box glass">
+            <h3>Add New Contact</h3>
+            <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 15px;">Enter the 0200 ID to start chatting.</p>
+            <div class="input-group">
+                <input type="text" id="new-contact-id" placeholder="Enter ID (e.g., 0200...)" autocomplete="off">
+            </div>
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button id="cancel-add-btn" class="modal-btn cancel-btn">Cancel</button>
+                <button id="save-contact-btn" class="modal-btn save-btn">Save Contact</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Chat List Context Menu (Delete/Block) - Body Level -->
+    <div id="contact-context-menu" style="display:none; position:fixed; z-index:99999; background:#1a2428; backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.15); border-radius:10px; box-shadow:0 10px 40px rgba(0,0,0,0.7); width: 150px; overflow:hidden;">
+        <div id="ctx-chat-delete-btn" style="padding:13px 16px; color:#ff4d4d; font-size:0.9rem; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center; gap:10px; transition: background 0.15s;" onmouseover="this.style.background='rgba(255,77,77,0.1)'" onmouseout="this.style.background='transparent'">🗑️ Delete</div>
+        <div id="ctx-chat-block-btn" style="padding:13px 16px; color:#ff4d4d; font-size:0.9rem; cursor:pointer; display:flex; align-items:center; gap:10px; transition: background 0.15s;" onmouseover="this.style.background='rgba(255,77,77,0.1)'" onmouseout="this.style.background='transparent'">🚫 Block</div>
+    </div>
+
+    <!-- Blocked Contact Context Menu (Unblock/Delete) - Body Level -->
+    <div id="blocked-context-menu" style="display:none; position:fixed; z-index:99999; background:#1a2428; backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.15); border-radius:10px; box-shadow:0 10px 40px rgba(0,0,0,0.7); width: 150px; overflow:hidden;">
+        <div id="ctx-unblock-btn" style="padding:13px 16px; color:#4fb087; font-size:0.9rem; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center; gap:10px; transition: background 0.15s;" onmouseover="this.style.background='rgba(79,176,135,0.1)'" onmouseout="this.style.background='transparent'">✅ Unblock</div>
+        <div id="ctx-blocked-delete-btn" style="padding:13px 16px; color:#ff4d4d; font-size:0.9rem; cursor:pointer; display:flex; align-items:center; gap:10px; transition: background 0.15s;" onmouseover="this.style.background='rgba(255,77,77,0.1)'" onmouseout="this.style.background='transparent'">🗑️ Delete</div>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
