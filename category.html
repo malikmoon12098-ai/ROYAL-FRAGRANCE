@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- No Cache: Always fetch fresh data -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <title>Perfume Collections | BIN MAZHAR PERFUMES</title>
+    <meta name="description"
+        content="Explore our wide range of premium perfumes and attar collections. Filter by categories, price, and brands to find your perfect scent.">
+    <link rel="canonical" href="https://binmazharperfumes.com/category.html">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&family=Jost:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=3.0">
+    <link rel="stylesheet" href="category.css?v=3.0">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <div class="nav-back-btn" id="backBtn">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="logo-wrap">
+                <a href="index.html"><img src="assets/logo.png" alt="BIN MAZHAR PERFUMES" id="main-logo"></a>
+            </div>
+            <div class="nav-links" id="navLinks">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="category.html" class="active">Collections</a></li>
+                <li><a href="track-order.html">Track Order</a></li>
+                <li><a href="index.html#contact">Contact</a></li>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <main class="category-page container">
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header-mobile">
+                <h3>Filters</h3>
+                <button id="closeSidebar"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="filter-section">
+                <h3 class="filter-title">Filter By Price</h3>
+                <div class="price-slider-container">
+                    <div class="slider-wrapper">
+                        <div class="slider-track" id="sliderTrack"></div>
+                        <input type="range" id="minPriceRange" min="0" max="100000" step="10" value="0">
+                        <input type="range" id="maxPriceRange" min="0" max="100000" step="10" value="100000">
+                    </div>
+                    <div class="price-filter-footer">
+                        <div class="price-display">
+                            Price: <strong id="minPriceLabel">Rs 0</strong> — <strong id="maxPriceLabel">Rs
+                                100,000</strong>
+                        </div>
+                        <button class="filter-apply-btn" id="applyFilterBtn">Filter</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3 class="filter-title">Product Status</h3>
+                <div class="checkbox-group">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="onSale">
+                        <span class="checkmark"></span>
+                        On sale
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="inStock">
+                        <span class="checkmark"></span>
+                        In stock
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3 class="filter-title">Product Categories</h3>
+                <ul class="sidebar-cat-list" id="sidebarCatList">
+                    <!-- Dynamic categories -->
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <section class="main-content">
+            <div class="shop-header">
+                <button class="mobile-filter-btn" id="openSidebar">
+                    <i class="fas fa-filter"></i> Filters
+                </button>
+                <div class="results-info" id="resultsInfo">
+                    Showing 0 results
+                </div>
+                <div class="shop-search">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="shopSearchInput" placeholder="Search products...">
+                    </div>
+                </div>
+                <div class="shop-brands">
+                    <button id="brandsFilterBtn" class="brands-btn">
+                        <i class="fas fa-tags"></i> Brands <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div id="brandsDropdown" class="brands-dropdown">
+                        <!-- Dynamic Brands List -->
+                    </div>
+                </div>
+                <div class="shop-controls">
+                    <select id="sortSelect" class="sort-select">
+                        <option value="popularity">Sort by popularity</option>
+                        <option value="price-low">Sort by price: low to high</option>
+                        <option value="price-high">Sort by price: high to low</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="product-grid" id="categoryProductGrid">
+                <!-- Products will be injected here -->
+            </div>
+
+            <!-- Pagination Container -->
+            <div class="pagination-container" id="pagination">
+                <!-- Page numbers will be injected here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Custom Toast Notification -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module" src="category.js?v=3.0"></script>
+</body>
+
+</html>

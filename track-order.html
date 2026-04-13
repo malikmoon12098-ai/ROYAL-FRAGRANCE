@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- No Cache: Always fetch fresh data -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <title>Track Your Order | BIN MAZHAR PERFUMES</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&family=Jost:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=3.0">
+    <link rel="stylesheet" href="track-order.css?v=3.0">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <div class="nav-back-btn" id="backBtn">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="logo-wrap">
+                <a href="index.html"><img src="assets/logo.png" alt="BIN MAZHAR PERFUMES" id="main-logo"></a>
+            </div>
+            <div class="nav-links" id="navLinks">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="category.html">Collections</a></li>
+                <li><a href="track-order.html" class="active">Track Order</a></li>
+                <li><a href="index.html#contact">Contact</a></li>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <main class="tracking-page container">
+        <div class="tracking-header">
+            <h1>Track Your Order</h1>
+            <p>Enter your phone number to see your order history and live status.</p>
+        </div>
+
+        <div class="tracking-search-box">
+            <div class="input-group">
+                <i class="fas fa-phone"></i>
+                <input type="tel" id="track-phone-input" placeholder="e.g. 0300 1234567">
+            </div>
+            <button id="track-btn" class="btn-track">Track Now</button>
+        </div>
+
+        <div id="tracking-results" class="tracking-results">
+            <!-- Results will appear here -->
+            <div class="empty-state">
+                <i class="fas fa-search"></i>
+                <p>Waiting for your phone number...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="main-footer">
+        <div class="container">
+            <p>&copy; 2026 BIN MAZHAR PERFUMES. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Custom Toast Notification -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Payment Proof Lightbox Modal -->
+    <div id="proof-modal" class="proof-modal">
+        <span class="close-proof" onclick="this.parentElement.classList.remove('active')">&times;</span>
+        <img id="proof-img" src="">
+    </div>
+
+    <script type="module" src="track-order.js?v=2.5"></script>
+</body>
+
+</html>

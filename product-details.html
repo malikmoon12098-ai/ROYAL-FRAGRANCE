@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- No Cache: Always fetch fresh data -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <title>Product Details | BIN MAZHAR PERFUMES</title>
+    <meta name="description"
+        content="Detailed information about our premium fragrances. Learn more about the quality and essence behind every bottle.">
+
+    <!-- Open Graph for Products -->
+    <meta property="og:type" content="product">
+    <meta property="og:title" id="og-title" content="Premium Perfume | BIN MAZHAR">
+    <meta property="og:description" id="og-desc" content="Discover this exquisite fragrance at BIN MAZHAR PERFUMES.">
+    <meta property="og:image" id="og-image" content="https://binmazharperfumes.com/assets/logo.png">
+
+    <!-- Canonical Link (Dynamic URL handled via JS is preferred, but base provided) -->
+    <link rel="canonical" href="https://binmazharperfumes.com/product-details.html">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&family=Jost:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Primary Stylesheets -->
+    <link rel="stylesheet" href="style.css?v=3.0">
+    <link rel="stylesheet" href="product-details.css?v=3.0">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <div class="nav-back-btn" id="backBtn">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="logo-wrap">
+                <a href="index.html"><img src="assets/logo.png" alt="BIN MAZHAR PERFUMES" id="main-logo"></a>
+            </div>
+            <div class="nav-links" id="navLinks">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="category.html" class="active">Collections</a></li>
+                <li><a href="track-order.html">Track Order</a></li>
+                <li><a href="index.html#contact">Contact</a></li>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <main class="product-details-page container">
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> / <a href="category.html">Collections</a> / <span
+                id="breadcrumb-current">Product</span>
+        </div>
+
+        <div class="product-container" id="product-container">
+            <!-- Loading State -->
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i> Loading Elegant Details...
+            </div>
+        </div>
+    </main>
+
+    <!-- Checkout Details Modal -->
+    <div class="checkout-modal" id="checkout-modal">
+        <div class="checkout-modal-content">
+            <button class="close-checkout-modal" id="close-checkout-modal">&times;</button>
+            <div class="checkout-modal-header">
+                <i class="fas fa-shopping-bag"></i>
+                <h3>Complete Your Order</h3>
+            </div>
+
+            <div class="order-summary-box" id="order-summary-box">
+                <!-- Dynamic Summary -->
+            </div>
+
+            <form class="checkout-form" id="checkout-form">
+                <div class="form-row">
+                    <div class="input-wrap">
+                        <label>Full Name</label>
+                        <input type="text" id="cust-name" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="input-wrap">
+                        <label>Phone Number</label>
+                        <input type="tel" id="cust-phone" placeholder="e.g. 0300 1234567" required>
+                    </div>
+                </div>
+                <div class="input-wrap">
+                    <label>City</label>
+                    <input type="text" id="cust-city" placeholder="Your city" required>
+                </div>
+                <div class="input-wrap">
+                    <label>Complete Address</label>
+                    <textarea id="cust-address" placeholder="Building, Street, Area details" rows="3"
+                        required></textarea>
+                </div>
+
+                <div class="checkout-actions">
+                    <button type="button" class="btn-cancel-order" id="cancel-order-btn">Cancel</button>
+                    <button type="submit" class="btn-confirm-order">Confirm Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Toast Notification -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module" src="product-details.js?v=3.0"></script>
+</body>
+
+</html>

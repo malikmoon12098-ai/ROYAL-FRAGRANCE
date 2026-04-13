@@ -4,221 +4,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checkout | Royal Fragrance</title>
-    <link rel="stylesheet" href="css/main.css">
-    <style>
-        .checkout-container {
-            padding: 120px 0 80px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
+    <!-- No Cache: Always fetch fresh data -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
 
-        .checkout-form {
-            background: var(--color-dark-gray);
-            padding: 40px;
-            border: 1px solid #333;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--color-gold);
-            font-size: 0.9rem;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 12px;
-            background: #111;
-            border: 1px solid #333;
-            color: white;
-            font-family: var(--font-body);
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--color-gold);
-        }
-
-        .order-summary {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #333;
-        }
-
-        .success-message {
-            display: none;
-            text-align: center;
-            padding: 60px 20px;
-        }
-
-        .success-message i {
-            font-size: 4rem;
-            color: var(--color-gold);
-            margin-bottom: 20px;
-        }
-
-        /* Navbar Duplicate */
-        nav {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            background: rgba(10, 10, 10, 0.95);
-            padding: 20px 0;
-            z-index: 1000;
-            border-bottom: 1px solid #333;
-        }
-
-        .nav-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-family: var(--font-heading);
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--color-gold);
-            letter-spacing: 2px;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 30px;
-        }
-
-        .nav-links a {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 500;
-            color: #fff;
-        }
-    </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Checkout | BIN MAZHAR PERFUMES</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&family=Jost:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=3.0">
+    <link rel="stylesheet" href="checkout.css?v=3.0">
 </head>
 
 <body>
-
-    <nav>
+    <!-- Simple Header for Checkout -->
+    <nav class="navbar">
         <div class="container nav-container">
-            <a href="index.html" class="logo">ROYAL FRAGRANCE</a>
-            <ul class="nav-links">
+            <div class="nav-back-btn" id="backBtn">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="logo-wrap">
+                <a href="index.html"><img src="assets/logo.png" alt="BIN MAZHAR PERFUMES" id="main-logo"></a>
+            </div>
+            <div class="nav-links" id="navLinks">
                 <li><a href="index.html">Home</a></li>
-                <li><a href="shop.html">Shop</a></li>
-            </ul>
+                <li><a href="category.html">Collections</a></li>
+                <li><a href="track-order.html">Track Order</a></li>
+                <li><a href="index.html#contact">Contact</a></li>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <i class="fas fa-bars"></i>
+            </div>
         </div>
     </nav>
 
-    <div class="container checkout-container">
-
-        <div id="checkout-view">
-            <h1 class="text-center" style="margin-bottom: 40px;">Secure Checkout</h1>
-
-            <form id="checkout-form" class="checkout-form" onsubmit="handleCheckout(event)">
-                <h3 style="margin-bottom: 20px;">Shipping Details</h3>
-
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" class="form-control" name="name" required>
+    <main class="checkout-page container">
+        <div class="checkout-grid">
+            <!-- Block 1: Order Details -->
+            <div class="section-card order-details-box">
+                <h3 class="checkout-title"><i class="fas fa-file-invoice"></i> Order Details</h3>
+                <div id="order-summary" class="order-summary">
+                    <!-- Filled by JS -->
+                    <div class="loading-placeholder">Loading order details...</div>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label>Email Address</label>
-                    <input type="email" class="form-control" name="email" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Phone Number</label>
-                    <input type="tel" class="form-control" name="phone" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Shipping Address</label>
-                    <textarea class="form-control" name="address" rows="3" required></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>City</label>
-                    <input type="text" class="form-control" name="city" required>
-                </div>
-
-                <div class="order-summary">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-size: 1.2rem;">
-                        <span>Total Amount (COD)</span>
-                        <span id="total-amount" class="text-gold">$0</span>
+            <!-- Block 2: Bill Breakdown (Side on desktop, Middle on mobile) -->
+            <div class="checkout-sidebar bill-summary-box">
+                <div class="section-card sticky-sidebar">
+                    <h3 class="checkout-title">Bill Summary</h3>
+                    <div class="bill-breakdown">
+                        <div class="bill-row">
+                            <span>Subtotal</span>
+                            <strong id="subtotal">Rs 0</strong>
+                        </div>
+                        <div class="bill-row">
+                            <span>Delivery Charges (DC)</span>
+                            <strong id="delivery-charges">Rs 0</strong>
+                        </div>
+                        <div class="bill-divider"></div>
+                        <div class="bill-row total">
+                            <span>Total Amount</span>
+                            <strong id="total-amount">Rs 0</strong>
+                        </div>
+                    </div>
+                    <div class="checkout-note">
+                        <i class="fas fa-info-circle"></i>
+                        <p>Orders are processed after payment verification. Delivery charges are Rs 200 per product.</p>
                     </div>
                 </div>
+            </div>
 
-                <button type="submit" class="btn btn-primary" style="width:100%; margin-top: 20px;">Place Order (Cash on
-                    Delivery)</button>
-            </form>
+            <!-- Block 3: Shipping & Payment -->
+            <div class="section-card shipping-info-box">
+                <h3 class="checkout-title"><i class="fas fa-user-edit"></i> Shipping Information</h3>
+                <form id="checkout-form" class="professional-form">
+                    <div class="form-row">
+                        <div class="input-wrap">
+                            <label>Full Name</label>
+                            <input type="text" id="custName" placeholder="Enter your full name" required>
+                        </div>
+                        <div class="input-wrap">
+                            <label>Phone Number (WhatsApp)</label>
+                            <input type="tel" id="custPhone" placeholder="03xx xxxxxxx" required>
+                        </div>
+                    </div>
+                    <div class="input-wrap">
+                        <label>Shipping Address</label>
+                        <textarea id="custAddress" rows="3" placeholder="Street, Sector, Area details"
+                            required></textarea>
+                    </div>
+                    <div class="input-wrap">
+                        <label>City</label>
+                        <input type="text" id="custCity" placeholder="Your city" required>
+                    </div>
+
+                    <!-- Step 2: Proceed to Payment Button -->
+                    <div class="proceed-btn-wrap mt-2">
+                        <button type="button" id="proceed-to-payment-btn" class="btn-proceed">
+                            Proceed to Payment <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Hidden Payment Section -->
+                    <div id="payment-section-wrapper" style="display: none;">
+
+
+                    <div class="payment-method-section mt-2">
+                        <label class="selection-label">Select Payment Method</label>
+                        <div class="payment-options">
+                            <div class="payment-opt active" data-method="Meezan">
+                                <i class="fas fa-university"></i>
+                                <span>Meezan Bank</span>
+                            </div>
+                            <div class="payment-opt" data-method="EasyPaisa">
+                                <i class="fas fa-mobile-alt"></i>
+                                <span>EasyPaisa</span>
+                            </div>
+                            <div class="payment-opt" data-method="JazzCash">
+                                <i class="fas fa-wallet"></i>
+                                <span>JazzCash</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="payment-instructions" class="payment-instructions-card mt-2">
+                        <!-- Filled by JS based on Admin settings -->
+                        <p>Loading payment details...</p>
+                    </div>
+
+                    <div class="upload-section mt-2">
+                        <label class="selection-label">Upload Payment Screenshot</label>
+                        <div class="upload-container" id="upload-box">
+                            <input type="file" id="proof-upload" accept="image/*" hidden>
+                            <div class="upload-inner">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Tap to upload proof of payment</p>
+                                <small>(Max 5MB, JPG/PNG)</small>
+                            </div>
+                            <div id="preview-container" style="display: none;">
+                                <img id="image-preview" src="">
+                                <button type="button" id="remove-proof" class="btn-remove-proof"><i
+                                        class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="place-order-btn" class="btn-place-order" disabled>
+                        Confirm Order & Submit Proof
+                    </button>
+                    </div> <!-- End Payment Section Wrapper -->
+                </form>
+
+            </div>
         </div>
-
-        <div id="success-view" class="success-message fade-in">
-            <i class="fas fa-check-circle"></i>
-            <h1>Order Placed Successfully!</h1>
-            <p style="margin-bottom: 30px;">Thank you for your purchase. Your order ID is <span id="order-id"
-                    class="text-gold"></span></p>
-            <a href="shop.html" class="btn btn-primary">Continue Shopping</a>
         </div>
+    </main>
 
+    <!-- Success Modal -->
+    <div id="order-success-modal" class="success-modal">
+        <div class="success-content">
+            <button class="modal-close-btn"
+                onclick="document.getElementById('order-success-modal').style.display='none'">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+            <h2 style="color: #1a1a1a;">Order Submitted!</h2>
+            <p style="color: #333;">Your order has been placed successfully. We will verify your payment and process it
+                shortly.</p>
+            <!-- Order ID Removed as requested -->
+            <button id="close-success" class="btn-primary">Track Your Order</button>
+        </div>
     </div>
 
-    <script src="js/data.js"></script>
-    <script>
-        let cartTotal = 0;
+    <!-- Duplicate Warning Modal (Bilingual) -->
+    <div id="duplicate-warning-modal" class="success-modal warning-overlay">
+        <div class="success-content warning-box">
+            <div class="warning-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h2 style="color: #1a1a1a; font-family: 'Outfit';">Duplicate Order Found?</h2>
+            
+            <div class="modal-body">
+                <p id="warning-msg-urdu" style="font-family: 'Jost', sans-serif; font-size: 1.1rem; line-height: 1.6; color: #1a1a1a; font-weight: 500; direction: rtl;">
+                    آپ یہ پروڈکٹ (<span class="duplicate-product-name">...</span>) پہلے بھی آرڈر کر چکے ہیں اور وہ اب تک ڈلیور نہیں ہوا، کیا آپ مزید پیس آرڈر کرنا چاہتے ہیں؟
+                </p>
+                <div class="divider" style="margin: 15px 0;"></div>
+                <p id="warning-msg-english" style="font-size: 0.95rem; color: #555; font-style: italic;">
+                    You have already ordered (<span class="duplicate-product-name">...</span>) and it hasn't been delivered yet. Would you like to order more pieces?
+                </p>
+            </div>
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const cart = JSON.parse(localStorage.getItem('rf_cart') || '[]');
-            if (cart.length === 0) {
-                window.location.href = 'shop.html';
-                return;
-            }
+            <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 25px;">
+                <button id="btn-cancel-duplicate" class="btn-secondary" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ddd; background: #f9f9f9; cursor: pointer; font-weight: 600;">No, Go Back</button>
+                <button id="btn-proceed-duplicate" class="btn-primary" style="flex: 1.5; padding: 12px; border-radius: 8px; background: #122620; color: #fff; cursor: pointer; font-weight: 600;">Yes, Order More</button>
+            </div>
+        </div>
+    </div>
 
-            cart.forEach(item => {
-                const p = DataManager.getProductById(item.productId);
-                if (p) cartTotal += p.price * item.quantity;
-            });
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
 
-            document.getElementById('total-amount').textContent = '$' + cartTotal;
-        });
-
-        function handleCheckout(e) {
-            e.preventDefault();
-
-            const formData = new FormData(e.target);
-            const cart = JSON.parse(localStorage.getItem('rf_cart') || '[]');
-
-            const order = {
-                customer: {
-                    name: formData.get('name'),
-                    email: formData.get('email'),
-                    phone: formData.get('phone'),
-                    address: formData.get('address'),
-                    city: formData.get('city')
-                },
-                items: cart,
-                total: cartTotal,
-                paymentMethod: 'COD'
-            };
-
-            const savedOrder = DataManager.saveOrder(order);
-
-            // Clear Cart
-            localStorage.setItem('rf_cart', JSON.stringify([]));
-
-            // Show Success
-            document.getElementById('checkout-view').style.display = 'none';
-            document.getElementById('success-view').style.display = 'block';
-            document.getElementById('order-id').textContent = savedOrder.id;
-        }
-    </script>
+    <script type="module" src="checkout.js?v=3.0"></script>
 </body>
 
 </html>
