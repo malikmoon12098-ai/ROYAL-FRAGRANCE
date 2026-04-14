@@ -635,8 +635,8 @@
 
 .brands-btn {
     padding: 10px 20px;
-    background: #122620;
-    /* Dark Green matching navbar/footer */
+    background: #002366;
+    /* Royal Blue matching navbar/footer */
     color: #F4EBD0;
     /* Cream */
     border: 1px solid rgba(214, 173, 96, 0.3);
@@ -656,7 +656,7 @@
 .brands-btn:hover {
     background: #D6AD60;
     /* Gold */
-    color: #122620;
+    color: #002366;
     border-color: #D6AD60;
 }
 

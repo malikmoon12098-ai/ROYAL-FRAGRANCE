@@ -1,4 +1,4 @@
-import { db, collection, onSnapshot, query, orderBy } from "./firebase-config.js";
+
 import { initNavbar, formatPrice } from "./navbar.js";
 import { initScrollReveal } from "./main.js";
 

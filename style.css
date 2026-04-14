@@ -69,14 +69,14 @@ select:active {
     /* Deeper Gold for visibility */
     --gold-light: #D6AD60;
     --pattern-color: #B68D40;
-    --gray-dark: #0a1612; /* Deeper Emerald Charcoal */
+    --gray-dark: #001133; /* Deep Navy */
     --gray-medium: #c0c1c1;
-    --black: #0a1612;
+    --black: #001133;
     --dark-text: #F4EBD0;
     --white: #F4EBD0;
     --cream-dark: #EAD9A6;
-    --off-white: #06110e; /* Even Darker for depth */
-    --glass: rgba(18, 38, 32, 0.4); /* Transparent glassy base */
+    --off-white: #00081a; /* Darkest Navy */
+    --glass: rgba(0, 35, 102, 0.4); /* Royal Blue glassy base */
     --glass-border: rgba(214, 173, 96, 0.3); /* Subtle Gold Border */
     --transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
@@ -89,7 +89,7 @@ select:active {
 
 body {
     font-family: 'Poppins', sans-serif;
-    background: radial-gradient(circle at center, #122620 0%, #0a1612 100%);
+    background: radial-gradient(circle at center, #002366 0%, #001133 100%);
     color: var(--dark-text);
     line-height: 1.6;
     overflow-x: hidden;
@@ -131,7 +131,7 @@ h5,
     left: 0;
     width: 100%;
     z-index: 1000;
-    background: rgba(10, 22, 18, 0.95) !important;
+    background: rgba(0, 17, 51, 0.95) !important;
     /* Glassy Dark Emerald */
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -593,7 +593,7 @@ h5,
     position: relative;
     overflow: hidden;
     /* Royal Theme Hero */
-    background: radial-gradient(circle at center, #1a3c32 0%, #0a1612 100%);
+    background: radial-gradient(circle at center, #0e3386 0%, #001133 100%);
     border-radius: 0;
     margin: 0;
     margin-top: 130px;
@@ -696,7 +696,7 @@ a {
 .btn-primary {
     background: #D6AD60;
     /* Gold */
-    color: #122620;
+    color: #002366;
     /* Dark Green Text */
     border-radius: 2px;
     padding: 12px 30px;
@@ -885,7 +885,7 @@ a {
 
 .category-item:hover .category-badge {
     background: var(--gold);
-    color: #122620;
+    color: #002366;
     transform: translateY(-3px);
 }
 
@@ -1171,8 +1171,8 @@ a {
 
 /* --- Footer --- */
 .main-footer {
-    background: #0d1c18;
-    /* Darker Charcoal */
+    background: #001133;
+    /* Deep Navy */
     color: #F4EBD0;
     /* Cream */
     padding: 2rem 0;
@@ -1351,7 +1351,7 @@ a {
     width: 60px;
     height: 60px;
     background-color: var(--gold);
-    color: #122620;
+    color: #002366;
     border-radius: 50px;
     text-align: center;
     font-size: 24px;
@@ -1524,7 +1524,7 @@ a {
 
 .cart-qty-btn:hover {
     background: var(--gold);
-    color: #122620;
+    color: #002366;
 }
 
 .cart-qty-val {
@@ -1566,7 +1566,7 @@ a {
 
 .btn-cart-checkout {
     background: var(--gold);
-    color: #122620;
+    color: #002366;
     border: none;
     padding: 15px;
     border-radius: 8px;

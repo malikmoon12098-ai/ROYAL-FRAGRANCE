@@ -1,4 +1,4 @@
-import { db, collection, addDoc, getDoc, doc, onSnapshot, updateDoc, query, getDocs, where } from "./firebase-config.js";
+
 import { initNavbar, formatPrice } from "./navbar.js";
 
 document.addEventListener('DOMContentLoaded', async () => {

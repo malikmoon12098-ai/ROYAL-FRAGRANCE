@@ -1,4 +1,4 @@
-import { db, collection, onSnapshot, doc, getDoc } from "./firebase-config.js";
+
 
 export function initNavbar() {
     initNavbarToggle();
